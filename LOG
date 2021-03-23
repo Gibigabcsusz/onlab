@@ -1,0 +1,27 @@
+A GPGPU gyorsítás logjának második verziója, mert az eddigi munkámat kitöröltem véletlenül.
+
+Hogyan kell életre kelteni a CUDA programozást az nVidia Jetson Nano Developer Kit-en (Headless)?
+	- Rá kell flashelni az nVidia oldaláról letölthető ~15 GB-os .iso lemezképet egy mikro SD kártyára, innen fog futni a Nano-n minden.
+	- A Barrel Jack csatlakozóról kell tápolni a Nano-t, egy jumpert fel kell tenni a megfelelő helyre, így a mikro USB portján nem tápot vár, hanem kommunikációra fogja használni, ezen lehet végigzongorázni a telepítést, a kódolást és a futtatást is.
+	- A hoszt gépre rá kell dugni egy USB-mikroUSB kábellel a Nano-t.
+	- A hoszt gépen be kell állítani a kapcsolat típusát a Nano-val. A Nano-nak van egy DHCP szervere az USB portján, ami statikus 192.168.55.1 IP címet ad magának és 192.168.55.100 IP címet 
+ad a kapcsolódó gépnek, tehát 192.168.55.100 statikus címet, 24 netmask-ot kell megadni, a többi opciót üresen hagyni és "Shared To Other Computers" kapcsolattípust megadni. A hoszt gép 
+hálózati eszköze nálam az "usb0", valószínűleg ez általános, de legalább is hasonló lesz.
+    - A Nano operációs rendszerének telepítéséhez rá kell kapcsolódni a Nano-ra terminálból, linux alatt ezzel a paranccsal: "screen /dev/ttyACM0 115200"
+    - TODO [bővebben] Kapcsolódás után végig kell lépegetni a beállításokon 
+    - Ha települt a nano, akkor be kell ssh-zni
+    - Az nVidia CUDA Compiler alapból telepítve van a Nano-n, de a bináris fájlok nincsenek hozzáadva a $PATH változóhoz, ezt meg kell csinálni a következő paranccsal:
+        "export PATH=/usr/local/cuda-10.2/bin${PATH:+:${PATH}}" itt a verziószámot nem a legfrissebb, hanem az alapból telepített verziószámra kell kicserélni. A sikert az "nvcc" paranccsal 
+lehet kipróbálni.
+    - Ha eddig minden megvan, akkor már csak a kódolás van hátra.
+
+
+A kódolás és a futtatás:
+    - A GPGPU gyorsítás eredményességének méréséhez a <chrono> c++ package-et használtam többek között, amivel ns pontossággal meg lehet mérni a kódba beszúrt checkpointok között eltelt időt. 
+A program a checkpointoknál eltárolja az aktuális időt ns felbontással és ezen időpillanatok különbségéből lehet számolni a checkpointok között lefutó kód futási idejét.
+    - Találtam egy hibát a témalaboratórium alatt írt MATLAB kódomban. Amilkor a térerősségekből számolunk gyorsulást, akkor elvileg két szomszédos időpillanatbeli térerősség átlaga adja a 
+gyorsulást, de a kódomban valószínűleg azzal ekvivalens utasítás volt, hogy az aktuális térerősség felével számol csak (az egyel előtte lévő térerősség érték helyén mindig csupa 0 szerepel.)
+
+
+
+
