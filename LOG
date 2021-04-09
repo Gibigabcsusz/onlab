@@ -23,5 +23,6 @@ A program a checkpointoknál eltárolja az aktuális időt ns felbontással és 
 gyorsulást, de a kódomban valószínűleg azzal ekvivalens utasítás volt, hogy az aktuális térerősség felével számol csak (az egyel előtte lévő térerősség érték helyén mindig csupa 0 szerepel.)
 
 
-
+2021.04.09.
+    - A gnuplot programot fogom az ábrák generálására használni, egyelőre nem tudom, hogyan kell.
 

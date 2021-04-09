@@ -1,0 +1,3 @@
+set terminal pdf
+set output 'plot.pdf'
+plot 'semmi.dat' with lines
