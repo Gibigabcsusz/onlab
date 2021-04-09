@@ -50,12 +50,12 @@ int main(void)
 {
     // Bemenetek megadása
     const int T = 3;
-    const int Ng = 20;
-    const int Nc = 3;
+    const int Ng = 200;
+    const int Nc = 15;
     const int Np = Nc*Ng;
     const double maxvin = 1;
     const double omDT = 0.2;
-    const double fihSzorzo = 0.05;
+    const double fihSzorzo = 0.1;
     const long int seedNum = 6;
 
 
@@ -212,11 +212,11 @@ int main(void)
             v[t%2][i]-=vatlag;
         }
 
-        cout << "Sebességek, t=" << t << endl;
-        for(i=0;i<Np;i++)
-        {
-            cout << fixed << setw(n) << setfill(' ') << setprecision(n-3) << right << v[t%2][i] << endl;
-        }
+//        cout << "Sebességek, t=" << t << endl;
+//        for(i=0;i<Np;i++)
+//        {
+//            cout << fixed << setw(n) << setfill(' ') << setprecision(n-3) << right << v[t%2][i] << endl;
+//        }
 
 
         // A következő helyek kiszámolása
