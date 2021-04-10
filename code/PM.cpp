@@ -54,7 +54,7 @@ int main(void)
         sorozat[i]=i;
 
     // Kiinduló állapotok legenerálása
-    uniform_real_distribution<double> unifx(-0.5+Ng/10, Ng-0.5-Ng/10);
+    uniform_real_distribution<double> unifx(-0.5, Ng-0.5);
     uniform_real_distribution<double> unifv(-maxvin, maxvin);
     default_random_engine re;
     re.seed(seedNum);
