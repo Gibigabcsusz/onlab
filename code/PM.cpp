@@ -49,8 +49,8 @@ void filePrinter(int vektorHossz, double* x, double* y, string fileNev)
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 3;
-    const int Ng = 200;
+    const int T = 3000;
+    const int Ng = 500;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const double maxvin = 1;
@@ -153,7 +153,7 @@ int main(void)
     // a nagy ciklus //
     ///////////////////
 
-    for(t=1;t<T;t++)
+    for(t=1;t<T+1;t++)
     {
         // a részecskéket cellákhoz rendeljük a legújabb kiszámolt pozíciók alapján
         besorol(Np, Ng, x[t%2], p);
@@ -225,13 +225,18 @@ int main(void)
         ciklikus(Ng, Np, x[(t+1)%2]);
 
 
+
+        // Ábra generálása
+        if(t==3000)
+        {
+            double sorozat[Ng+1] = {};
+            for(i=0; i<Ng+1; i++)
+                sorozat[i]=i;
+            fi[Ng]=fi[0];
+            filePrinter(Ng+1, sorozat, fi, "output/semmi.dat");
+        }
     }
 
-    double sorozat[Ng+1] = {};
-    for(i=0; i<Ng+1; i++)
-        sorozat[i]=i;
-    fi[Ng]=fi[0];
-    filePrinter(Ng+1, sorozat, fi, "output/semmi.dat");
 
 
     return 0;
