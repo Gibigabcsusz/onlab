@@ -4,52 +4,18 @@
 #include <iomanip>
 #include <fstream>
 
-
 using namespace std;
 
-// function to add the elements of two arrays TODO
-void add(int n, double *x, double *y, double *z)
-{
-    for (int i = 0; i < n; i++)
-        z[i] = x[i] + y[i];
-}
-
-
-// ez a ciklikus szimulációs teret biztosítja, egyelőre csak akkor, ha
-// a részecskék legnagyobb sebessége kisebb, mint Ng
-void ciklikus(double cellaSzam, int reszecskeSzam, double* helyek) //TODO
-{
-    for(int k=0; k<reszecskeSzam; k++)
-    {
-        if(helyek[k] < -0.5)
-            helyek[k] += cellaSzam;
-        if(helyek[k] > cellaSzam-0.5)
-            helyek[k] -= cellaSzam;
-    }
-}
-
-// TODO a helyek változóban tárolt részecske x értékeket besorolja a cellákba és a cellák indexeit eltárolja
-void besorol(int reszecskeSzam, int cellaSzam, double* helyek, int* indexek)
-{
-    for(int k=0; k<reszecskeSzam; k++)
-            indexek[k] = ((int)round(helyek[k])%cellaSzam + cellaSzam)%cellaSzam;
-}
-
-
-void filePrinter(int vektorHossz, double* x, double* y, string fileNev)
-{
-    ofstream myFile;
-    myFile.open(fileNev);
-    for(int i=0; i<vektorHossz; i++)
-        myFile << x[i] << " " << y[i] << endl;
-    myFile.close();
-}
-
+void add(int n, double *x, double *y, double *z);
+void ciklikus(double cellaSzam, int reszecskeSzam, double* helyek);
+void besorol(int reszecskeSzam, int cellaSzam, double* helyek, int* indexek);
+void filePrinter(int vektorHossz, double* x, double* y, string fileNev);
 
 int main(void)
 {
     // Bemenetek megadása
     const int T = 3000;
+    const int Ta = 2; // az ábrázolás időlépésének száma, min=2
     const int Ng = 500;
     const int Nc = 15;
     const int Np = Nc*Ng;
@@ -227,7 +193,7 @@ int main(void)
 
 
         // Ábra generálása
-        if(t==3000)
+        if(t==Ta)
         {
             double sorozat[Ng+1] = {};
             for(i=0; i<Ng+1; i++)
@@ -240,4 +206,43 @@ int main(void)
 
 
     return 0;
+}
+
+
+// function to add the elements of two arrays TODO
+void add(int n, double *x, double *y, double *z)
+{
+    for (int i = 0; i < n; i++)
+        z[i] = x[i] + y[i];
+}
+
+
+// ez a ciklikus szimulációs teret biztosítja, egyelőre csak akkor, ha
+// a részecskék legnagyobb sebessége kisebb, mint Ng
+void ciklikus(double cellaSzam, int reszecskeSzam, double* helyek) //TODO
+{
+    for(int k=0; k<reszecskeSzam; k++)
+    {
+        if(helyek[k] < -0.5)
+            helyek[k] += cellaSzam;
+        if(helyek[k] > cellaSzam-0.5)
+            helyek[k] -= cellaSzam;
+    }
+}
+
+// TODO a helyek változóban tárolt részecske x értékeket besorolja a cellákba és a cellák indexeit eltárolja
+void besorol(int reszecskeSzam, int cellaSzam, double* helyek, int* indexek)
+{
+    for(int k=0; k<reszecskeSzam; k++)
+            indexek[k] = ((int)round(helyek[k])%cellaSzam + cellaSzam)%cellaSzam;
+}
+
+
+void filePrinter(int vektorHossz, double* x, double* y, string fileNev)
+{
+    ofstream myFile;
+    myFile.open(fileNev);
+    for(int i=0; i<vektorHossz; i++)
+        myFile << x[i] << " " << y[i] << endl;
+    myFile.close();
 }
