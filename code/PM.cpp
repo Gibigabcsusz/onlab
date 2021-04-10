@@ -67,11 +67,11 @@ int main(void)
     double vb[Np] = {};
     double* v[2] = {va, vb};
     int p[Np] = {};
-    double rho[Ng] = {};
-    double fi[Ng] = {};
-    double fih[Ng] = {};
-    double Ea[Ng] = {};
-    double Eb[Ng] = {};
+    double rho[Ng+1] = {};
+    double fi[Ng+1] = {};
+    double fih[Ng+1] = {};
+    double Ea[Ng+1] = {};
+    double Eb[Ng+1] = {};
     double* E[2] = {Ea, Eb};
     double vatlag = 0;
     int i, t;
@@ -227,10 +227,11 @@ int main(void)
 
     }
 
-    double sorozat[Ng] = {};
-    for(i=0; i<Ng; i++)
+    double sorozat[Ng+1] = {};
+    for(i=0; i<Ng+1; i++)
         sorozat[i]=i;
-    filePrinter(Ng, sorozat, fi, "output/semmi.dat");
+    fi[Ng]=fi[0];
+    filePrinter(Ng+1, sorozat, fi, "output/semmi.dat");
 
 
     return 0;
