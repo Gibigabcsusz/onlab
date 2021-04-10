@@ -14,8 +14,8 @@ void filePrinter(int vektorHossz, double* x, double* y, string fileNev, string x
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 2000;
-    const int Ta = 1990; // az ábrázolás időlépésének száma, min=2
+    const int T = 200;
+    const int Ta = 199; // az ábrázolás időlépésének száma, min=2
     const int Ng = 1000;
     const int Nc = 15;
     const int Np = Nc*Ng;
