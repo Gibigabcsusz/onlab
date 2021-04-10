@@ -9,20 +9,20 @@ using namespace std;
 void add(int n, double *x, double *y, double *z);
 void ciklikus(double cellaSzam, int reszecskeSzam, double* helyek);
 void besorol(int reszecskeSzam, int cellaSzam, double* helyek, int* indexek);
-void filePrinter(int vektorHossz, double* x, double* y, string fileNev);
+void filePrinter(int vektorHossz, double* x, double* y, string fileNev, string xLabel, string yLabel, string dataLabel);
 
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 3000;
-    const int Ta = 2; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 500;
+    const int T = 2000;
+    const int Ta = 1990; // az ábrázolás időlépésének száma, min=2
+    const int Ng = 1000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const double maxvin = 1;
     const double omDT = 0.2;
-    const double fihSzorzo = 0.1;
-    const long int seedNum = 6;
+    const double fihSzorzo = 1;
+    const long int seedNum = 0;
 
 
     // Tároló vektorok inicializálása
@@ -44,15 +44,17 @@ int main(void)
     double rhoSzorzo = omDT*omDT/2/Nc;
     // TODO
     double y=0;
-    for(i=0; i<Ng; i++)
+    for(i=0; i<Ng+1; i++)
     {
-        fih[i] = 256*y*y*y*y - 512*y*y*y + 352*y*y - 96*y + 9;
+        fih[i] = fihSzorzo*(-256*y*y*y*y + 512*y*y*y - 352*y*y + 96*y - 9);
         y = y + 1.0/Ng;
     }
-
+    double sorozat[Ng+1] = {};
+    for(i=0; i<Ng+1; i++)
+        sorozat[i]=i;
 
     // Kiinduló állapotok legenerálása
-    uniform_real_distribution<double> unifx(-0.5, Ng-0.5);
+    uniform_real_distribution<double> unifx(-0.5+Ng/10, Ng-0.5-Ng/10);
     uniform_real_distribution<double> unifv(-maxvin, maxvin);
     default_random_engine re;
     re.seed(seedNum);
@@ -95,7 +97,7 @@ int main(void)
     //TODO
     for(i=0; i<Ng; i++)
     {
-        fi[i]+=fih[i]*fihSzorzo;
+        fi[i]+=fih[i];
     }
 
     // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
@@ -147,12 +149,25 @@ int main(void)
             fi[i]=rho[i-1]+2*fi[i-1]-fi[i-2];
         }
         for(i=0; i<Ng; i++)
+        // Ábra generálása
+        if(t==Ta)
+        {
+            fi[Ng]=fi[0];
+            filePrinter(Ng+1, sorozat, fih, "output/fih.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng+1, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng+1, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
+        }
         //TODO
         for(i=0; i<Ng; i++)
         {
             fi[i]+=fih[i]*fihSzorzo;
         }
-
+        // Ábra generálása
+        if(t==Ta)
+        {
+            fi[Ng]=fi[0];
+            filePrinter(Ng+1, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
+        }
         // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
         E[t%2][0]=fi[Ng-1]-fi[1];
         E[t%2][Ng-1]=fi[Ng-2]-fi[0];
@@ -164,7 +179,8 @@ int main(void)
 
         // A következő sebességek kiszámolása
         for(i=0;i<Np;i++) //TODO
-            v[t%2][i] = v[(t-1)%2][i] - (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
+        // ez volt eredetileg:            v[t%2][i] = v[(t-1)%2][i] - (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
+            v[t%2][i] = v[(t-1)%2][i] + (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
         for(i=0;i<Np;i++)
         {
             vatlag += v[t%2][i];
@@ -178,11 +194,6 @@ int main(void)
             v[t%2][i]-=vatlag;
         }
 
-//        cout << "Sebességek, t=" << t << endl;
-//        for(i=0;i<Np;i++)
-//        {
-//            cout << fixed << setw(n) << setfill(' ') << setprecision(n-3) << right << v[t%2][i] << endl;
-//        }
 
 
         // A következő helyek kiszámolása
@@ -192,15 +203,6 @@ int main(void)
 
 
 
-        // Ábra generálása
-        if(t==Ta)
-        {
-            double sorozat[Ng+1] = {};
-            for(i=0; i<Ng+1; i++)
-                sorozat[i]=i;
-            fi[Ng]=fi[0];
-            filePrinter(Ng+1, sorozat, fi, "output/semmi.dat");
-        }
     }
 
 
@@ -238,10 +240,11 @@ void besorol(int reszecskeSzam, int cellaSzam, double* helyek, int* indexek)
 }
 
 
-void filePrinter(int vektorHossz, double* x, double* y, string fileNev)
+void filePrinter(int vektorHossz, double* x, double* y, string fileNev, string xLabel, string yLabel, string dataLabel)
 {
     ofstream myFile;
     myFile.open(fileNev);
+    myFile << "# " << xLabel << " " << yLabel << endl;
     for(int i=0; i<vektorHossz; i++)
         myFile << x[i] << " " << y[i] << endl;
     myFile.close();
