@@ -230,7 +230,7 @@ int main(void)
     double sorozat[Ng] = {};
     for(i=0; i<Ng; i++)
         sorozat[i]=i;
-    filePrinter(Ng, sorozat, fi, "semmi.dat");
+    filePrinter(Ng, sorozat, fi, "output/semmi.dat");
 
 
     return 0;
