@@ -4,16 +4,6 @@
 #include <iomanip>
 #include <fstream>
 
-/*    __global__
-     void osszegAXBY(int n, float *x, float *y)
-     {
-       int index = blockIdx.x * blockDim.x + threadIdx.x;
-       int stride = blockDim.x * gridDim.x;
-       for (int i = index; i < n; i += stride)
-         y[i] = x[i] + y[i];
-     }
-*/
-
 using namespace std;
 
 __global__ void osszegAXBY(int n, float a, float b, float *x, float *y, float *z);
@@ -49,6 +39,7 @@ int main(void)
     // Tároló vektorok inicializálása a device-on
     float **x, **v, *rho, *fi, *fih, **E, *fiMasolat;
     int *p;
+
     cudaMallocManaged(&x, 2*sizeof(float*));
     cudaMallocManaged(&v, 2*sizeof(float*));
     cudaMallocManaged(&(x[0]), Np*sizeof(float));
@@ -102,24 +93,19 @@ int main(void)
     {
         fi[i]=rho[i-1]+2*fi[i-1]-fi[i-2];
     }
-    //TODO
-    for(i=0; i<Ng; i++)
-    {
-        fi[i]+=fih[i];
-    }
+
+    osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, fihSzorzo, 1, fih, fi, fi);
+    cudaDeviceSynchronize();
 
     // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
     cudaMemcpy(fiMasolat, fi, Ng*sizeof(float), cudaMemcpyDeviceToDevice);
     ujE<<<blockSize, numBlocksGrid>>>(Ng, fi, fiMasolat, E[0]);
     cudaDeviceSynchronize();
 
-
-    // Átlagsebesség kiszámolása
+    // Átlagsebesség kiszámolása TODO
     for(i=0;i<Np;i++)
         vatlag+=v[0][i];
     vatlag/=Np;
-
-
 
 
     ///////////////////
@@ -136,15 +122,12 @@ int main(void)
         init<<<blockSize, numBlocksGrid>>>(Ng, -Nc, rho);
         cudaDeviceSynchronize();
 
-
-        for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása
+        for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása TODO
             rho[p[i]]++;
 
         //az eredmény skálázása
         osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, rhoSzorzo, 0, rho, rho, rho);
         cudaDeviceSynchronize();
-
-
 
         // Potenciál kiszámolása EZ NEM MEGY GYORSABBAN
         fi[0]=0;
@@ -167,22 +150,23 @@ int main(void)
             filePrinter(Ng, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
             filePrinter(Ng, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
         }
+        // külső potenciál hozzáadása
         osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, fihSzorzo, 1, fih, fi, fi);
         cudaDeviceSynchronize();
 
-        // Ábra generálása
+        // Ábra generálása...
         if(t==Ta)
         {
             fi[Ng]=fi[0];
             filePrinter(Ng, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
         }
 
-        // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
+        // A térerősség (ami a gyorsulás ellentettje) kiszámolása
         cudaMemcpy(fiMasolat, fi, Ng*sizeof(float), cudaMemcpyDeviceToDevice);
         ujE<<<blockSize, numBlocksGrid>>>(Ng, fi, fiMasolat, E[t%2]);
         cudaDeviceSynchronize();
 
-        // A következő sebességek kiszámolása
+        // A következő sebességek kiszámolása EZ NEM MEGY GYORSABBAN, HACSAK NEM LEHET EGYSZERRE UGYANONNAN OLVASNI
         for(i=0;i<Np;i++) //TODO
         // ez volt eredetileg:            v[t%2][i] = v[(t-1)%2][i] - (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
             v[t%2][i] = v[(t-1)%2][i] + (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
@@ -201,7 +185,7 @@ int main(void)
 
 
 
-        // A következő helyek kiszámolása
+        // A következő helyek kiszámolása TODO
         for(i=0;i<Np;i++)
             x[(t+1)%2][i] = x[t%2][i] + (v[(t-1)%2][i] + v[t%2][i])/2;
 
