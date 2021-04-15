@@ -109,13 +109,10 @@ int main(void)
     }
 
     // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
-    E[0][0]=fi[Ng-1]-fi[1];
-    E[0][Ng-1]=fi[Ng-2]-fi[0];
-    //TODO
-    for(i=1;i<Ng-1;i++)
-    {
-        E[0][i]=fi[i-1]-fi[i+1];
-    }
+    cudaMemcpy(fiMasolat, fi, Ng*sizeof(float), cudaMemcpyDeviceToDevice);
+    ujE<<<blockSize, numBlocksGrid>>>(Ng, fi, fiMasolat, E[0]);
+    cudaDeviceSynchronize();
+
 
     // Átlagsebesség kiszámolása
     for(i=0;i<Np;i++)
