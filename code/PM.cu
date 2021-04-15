@@ -16,13 +16,13 @@
 
 using namespace std;
 
-void add(int n, float *x, float *y, float *z); //TODO
+void add(int n, float a, float b, float *x, float *y, float *z); //TODO
 void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek); //TODO
 void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);//TODO
 void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
 void fihGenerator(int len, float szorzo, float* outVector);//TODO
 void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp);
-
+__global__ void init(int len, float value, float* vector);
 
 int main(void)
 {
@@ -38,18 +38,39 @@ int main(void)
     const long int seedNum = 0;
 
 
-    // Tároló vektorok inicializálása
-    float *x[2] = {(float*)malloc(Np*sizeof(float)), (float*)malloc(Np*sizeof(float))};
+    // Tároló vektorok inicializálása a host-on
+/*    float *x[2] = {(float*)malloc(Np*sizeof(float)), (float*)malloc(Np*sizeof(float))};
     float *v[2] = {(float*)malloc(Np*sizeof(float)), (float*)malloc(Np*sizeof(float))};
     int *p = (int*)malloc(Np*sizeof(int));
     float *rho = (float*)malloc(Ng*sizeof(float));
     float *fi = (float*)malloc(Ng*sizeof(float));
     float *fih = (float*)malloc(Ng*sizeof(float));
-    float *E[2] = {(float*)malloc(Ng*sizeof(float)), (float*)malloc(Ng*sizeof(float))};
+    float *E[2] = {(float*)malloc(Ng*sizeof(float)), (float*)malloc(Ng*sizeof(float))}; */
     float *sorozat = (float*)malloc(Ng*sizeof(float));
     float rhoSzorzo = omDT*omDT/2/Nc;
     int i, t;
     float vatlag = 0;
+
+    // Tároló vektorok inicializálása a device-on
+    // DUPLA HOSSZÚ VEKTOROK KELLENEK
+    float **x, **v, *rho, *fi, *fih, **E;
+    int *p;
+    cudaMallocManaged(&x, 2*sizeof(float*));
+    cudaMallocManaged(&v, 2*sizeof(float*));
+    cudaMallocManaged(&(x[0]), Np*sizeof(float));
+    cudaMallocManaged(&(x[1]), Np*sizeof(float));
+    cudaMallocManaged(&(v[0]), Np*sizeof(float));
+    cudaMallocManaged(&(v[1]), Np*sizeof(float));
+    cudaMallocManaged(&p, Np*sizeof(int));
+    cudaMallocManaged(&rho, Ng*sizeof(float));
+    cudaMallocManaged(&fi, Ng*sizeof(float));
+    cudaMallocManaged(&fih, Ng*sizeof(float));
+    cudaMallocManaged(&E, 2*sizeof(float*));
+    cudaMallocManaged(&(E[0]), Np*sizeof(float));
+    cudaMallocManaged(&(E[1]), Np*sizeof(float));
+
+
+
 
     fihGenerator(Ng, fihSzorzo, fih);
 
@@ -196,17 +217,21 @@ int main(void)
 
 
     // felszabadítás
-    free(x[0]);
-    free(x[1]);
-    free(v[0]);
-    free(v[1]);
-    free(p);
-    free(rho);
-    free(fi);
-    free(fih);
-    free(E[0]);
-    free(E[1]);
     free(sorozat);
+
+    cudaFree(x[0]);
+    cudaFree(x[1]);
+    cudaFree(x);
+    cudaFree(v[0]);
+    cudaFree(v[1]);
+    cudaFree(v);
+    cudaFree(p);
+    cudaFree(rho);
+    cudaFree(fi);
+    cudaFree(fih);
+    cudaFree(E[0]);
+    cudaFree(E[1]);
+    cudaFree(E);
 
 
 
@@ -279,3 +304,13 @@ void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, floa
     }
     ciklikus(reszecskeSzam, cellaSzam, xp[1]);
 }
+
+__global__
+void init(int len, float value, float* vector)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < len; i += stride)
+        vector[i] = value;
+}
+
