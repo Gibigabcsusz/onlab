@@ -4,78 +4,60 @@
 #include <iomanip>
 #include <fstream>
 
+/*    __global__
+     void add(int n, float *x, float *y)
+     {
+       int index = blockIdx.x * blockDim.x + threadIdx.x;
+       int stride = blockDim.x * gridDim.x;
+       for (int i = index; i < n; i += stride)
+         y[i] = x[i] + y[i];
+     }
+*/
+
 using namespace std;
 
-void add(int n, double *x, double *y, double *z); //TODO
-void ciklikus(double cellaSzam, int reszecskeSzam, double* helyek); //TODO
-void besorol(int reszecskeSzam, int cellaSzam, double* helyek, int* indexek);
-void filePrinter(int vektorHossz, double* x, double* y, string fileNev, string xLabel, string yLabel, string dataLabel);
-void fihGenerator(int len, double* outVector, )
-{
-    double y=0;
-    for(i=0; i<Ng+1; i++)
-    {
-        fih[i] = fihSzorzo*(-256*y*y*y*y + 512*y*y*y - 352*y*y + 96*y - 9);
-        y = y + 1.0/Ng;
-    }
-}
+void add(int n, float *x, float *y, float *z); //TODO
+void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek); //TODO
+void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);//TODO
+void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
+void fihGenerator(int len, float szorzo, float* outVector);//TODO
+void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp);
+
 
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 2000;
-    const int Ta = 1990; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 1000;
+    const int T = 200;
+    const int Ta = 199; // az ábrázolás időlépésének száma, min=2
+    const int Ng = 100;
     const int Nc = 15;
     const int Np = Nc*Ng;
-    const double maxvin = 1;
-    const double omDT = 0.2;
-    const double fihSzorzo = 1;
+    const float maxvin = 1;
+    const float omDT = 0.2;
+    const float fihSzorzo = 1;
     const long int seedNum = 0;
 
 
     // Tároló vektorok inicializálása
-    double xa[Np] = {};
-    double xb[Np] = {};
-    double* x[2] = {xa, xb};
-    double va[Np] = {};
-    double vb[Np] = {};
-    double* v[2] = {va, vb};
-    int p[Np] = {};
-    double rho[Ng+1] = {};
-    double fi[Ng+1] = {};
-    double fih[Ng+1] = {};
-    double Ea[Ng+1] = {};
-    double Eb[Ng+1] = {};
-    double* E[2] = {Ea, Eb};
-    double vatlag = 0;
+    float *x[2] = {(float*)malloc(Np*sizeof(float)), (float*)malloc(Np*sizeof(float))};
+    float *v[2] = {(float*)malloc(Np*sizeof(float)), (float*)malloc(Np*sizeof(float))};
+    int *p = (int*)malloc(Np*sizeof(int));
+    float *rho = (float*)malloc(Ng*sizeof(float));
+    float *fi = (float*)malloc(Ng*sizeof(float));
+    float *fih = (float*)malloc(Ng*sizeof(float));
+    float *E[2] = {(float*)malloc(Ng*sizeof(float)), (float*)malloc(Ng*sizeof(float))};
+    float *sorozat = (float*)malloc(Ng*sizeof(float));
+    float rhoSzorzo = omDT*omDT/2/Nc;
     int i, t;
-    double rhoSzorzo = omDT*omDT/2/Nc;
-    // TODO
-    double y=0;
-    for(i=0; i<Ng+1; i++)
-    {
-        fih[i] = fihSzorzo*(-256*y*y*y*y + 512*y*y*y - 352*y*y + 96*y - 9);
-        y = y + 1.0/Ng;
-    }
-    double sorozat[Ng+1] = {};
-    for(i=0; i<Ng+1; i++)
+    float vatlag = 0;
+
+    fihGenerator(Ng, fihSzorzo, fih);
+
+    for(i=0; i<Ng; i++)
         sorozat[i]=i;
 
     // Kiinduló állapotok legenerálása
-    uniform_real_distribution<double> unifx(-0.5, Ng-0.5);
-    uniform_real_distribution<double> unifv(-maxvin, maxvin);
-    default_random_engine re;
-    re.seed(seedNum);
-    for(i=0; i<Np; i++)
-    {
-
-        x[0][i] = unifx(re);
-        v[0][i] = unifv(re);
-        x[1][i] = x[0][i]+v[0][i];
-    }
-    ciklikus(Np, Ng, x[1]);
-
+    kezdetiXV(seedNum, maxvin, Np, Ng, x, v);
 
     // Részecskék cellákba sorolása
     besorol(Np, Ng, x[0], p);
@@ -86,7 +68,6 @@ int main(void)
         rho[i] = -Nc;
     for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása
         rho[p[i]]++;
-    int n = 9;
     for(i=0; i<Ng; i++) // Az eredmény skálázása
     {
         rho[i] *= rhoSzorzo;
@@ -140,7 +121,6 @@ int main(void)
             rho[i] = -Nc;
         for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása
             rho[p[i]]++;
-        int n = 9;
         for(i=0; i<Ng; i++) // Az eredmény skálázása
         {
             rho[i] *= rhoSzorzo;
@@ -215,13 +195,28 @@ int main(void)
     }
 
 
+    // felszabadítás
+    free(x[0]);
+    free(x[1]);
+    free(v[0]);
+    free(v[1]);
+    free(p);
+    free(rho);
+    free(fi);
+    free(fih);
+    free(E[0]);
+    free(E[1]);
+    free(sorozat);
+
+
+
 
     return 0;
 }
 
 
 // function to add the elements of two arrays TODO
-void add(int n, double *x, double *y, double *z)
+void add(int n, float *x, float *y, float *z)
 {
     for (int i = 0; i < n; i++)
         z[i] = x[i] + y[i];
@@ -230,7 +225,7 @@ void add(int n, double *x, double *y, double *z)
 
 // ez a ciklikus szimulációs teret biztosítja, egyelőre csak akkor, ha
 // a részecskék legnagyobb sebessége kisebb, mint Ng
-void ciklikus(double cellaSzam, int reszecskeSzam, double* helyek) //TODO
+void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek)
 {
     for(int k=0; k<reszecskeSzam; k++)
     {
@@ -241,15 +236,15 @@ void ciklikus(double cellaSzam, int reszecskeSzam, double* helyek) //TODO
     }
 }
 
-// TODO a helyek változóban tárolt részecske x értékeket besorolja a cellákba és a cellák indexeit eltárolja
-void besorol(int reszecskeSzam, int cellaSzam, double* helyek, int* indexek)
+// a helyek változóban tárolt részecske x értékeket besorolja a cellákba és a cellák indexeit eltárolja
+void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
 {
     for(int k=0; k<reszecskeSzam; k++)
             indexek[k] = ((int)round(helyek[k])%cellaSzam + cellaSzam)%cellaSzam;
 }
 
 
-void filePrinter(int vektorHossz, double* x, double* y, string fileNev, string xLabel, string yLabel, string dataLabel)
+void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel)
 {
     ofstream myFile;
     myFile.open(fileNev);
@@ -257,4 +252,29 @@ void filePrinter(int vektorHossz, double* x, double* y, string fileNev, string x
     for(int i=0; i<vektorHossz; i++)
         myFile << x[i] << " " << y[i] << endl;
     myFile.close();
+}
+
+void fihGenerator(int len, float szorzo, float* outVector)
+{
+    float y=0;
+    for(int i=0; i<len; i++)
+    {
+        outVector[i] = szorzo*(-256*y*y*y*y + 512*y*y*y - 352*y*y + 96*y - 9);
+        y = y + 1.0/len;
+    }
+}
+
+void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp)
+{
+    uniform_real_distribution<float> unifx(-0.5, cellaSzam-0.5);
+    uniform_real_distribution<float> unifv(-maxv, maxv);
+    default_random_engine re;
+    re.seed(seed);
+    for(int i=0; i<reszecskeSzam; i++)
+    {
+        xp[0][i] = unifx(re);
+        vp[0][i] = unifv(re);
+        xp[1][i] = xp[0][i]+vp[0][i];
+    }
+    ciklikus(reszecskeSzam, cellaSzam, xp[1]);
 }

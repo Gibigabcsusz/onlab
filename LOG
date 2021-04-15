@@ -26,3 +26,7 @@ gyorsulást, de a kódomban valószínűleg azzal ekvivalens utasítás volt, ho
 2021.04.09.
     - A gnuplot programot fogom az ábrák generálására használni, egyelőre nem tudom, hogyan kell.
 
+
+2021.04.15.
+    - Az Nvidia kártyámon Maxwell GPU magok vannak, ezek még nem tudják a unified device memory-t, ezért az a számítás menete, hogy a host-on inicializálok, a device-on számolok, majd 
+visszamásolok a host-ra.
