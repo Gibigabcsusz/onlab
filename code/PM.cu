@@ -5,7 +5,7 @@
 #include <fstream>
 
 /*    __global__
-     void add(int n, float *x, float *y)
+     void osszegAXBY(int n, float *x, float *y)
      {
        int index = blockIdx.x * blockDim.x + threadIdx.x;
        int stride = blockDim.x * gridDim.x;
@@ -16,13 +16,14 @@
 
 using namespace std;
 
-__global__ void add(int n, float a, float b, float *x, float *y, float *z);
+__global__ void osszegAXBY(int n, float a, float b, float *x, float *y, float *z);
+__global__ void ujSebesseg(int n, float a, float b, float *x, float *y, float *z);
 __global__ void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek);
-__global__ void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);//TODO
-void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
-void fihGenerator(int len, float szorzo, float* outVector);//TODO
-void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp);
+__global__ void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);
 __global__ void init(int len, float value, float* vector);
+void fihGenerator(int len, float szorzo, float* outVector);
+void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
+void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp);
 
 int main(void)
 {
@@ -62,9 +63,10 @@ int main(void)
     cudaMallocManaged(&(E[0]), Np*sizeof(float));
     cudaMallocManaged(&(E[1]), Np*sizeof(float));
 
-
+    // a háttérpotenciál vektorának generálása
     fihGenerator(Ng, fihSzorzo, fih);
 
+    // az ábrázoláshoz használt vektor generálása
     for(i=0; i<Ng; i++)
         sorozat[i]=i;
 
@@ -77,16 +79,16 @@ int main(void)
     besorol<<<blockSize, numBlocksParticles>>>(Np, Ng, x[0], p);
     cudaDeviceSynchronize();
 
-    // Töltéssűrűség kiszámolása TODO
+    // Töltéssűrűség kiszámolása
     init<<<blockSize, numBlocksGrid >>>(Ng, -Nc, rho);
     cudaDeviceSynchronize();
 
-    for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása
+    for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása //TODO
         rho[p[i]]++;
-    for(i=0; i<Ng; i++) // Az eredmény skálázása
-    {
-        rho[i] *= rhoSzorzo;
-    }
+
+    osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, rhoSzorzo, 0, rho, rho, rho);
+    cudaDeviceSynchronize();
+
 
     // Potenciál kiszámolása
     fi[0]=0;
@@ -132,19 +134,21 @@ int main(void)
         besorol<<<blockSize, numBlocksParticles>>>(Np, Ng, x[t%2], p);
         cudaDeviceSynchronize();
 
-        // Töltéssűrűség kiszámolása TODO
+        // Töltéssűrűség kiszámolása
         init<<<blockSize, numBlocksGrid>>>(Ng, -Nc, rho);
         cudaDeviceSynchronize();
 
 
         for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása
             rho[p[i]]++;
-        for(i=0; i<Ng; i++) // Az eredmény skálázása
-        {
-            rho[i] *= rhoSzorzo;
-        }
 
-        // Potenciál kiszámolása
+        //az eredmény skálázása
+        osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, rhoSzorzo, 0, rho, rho, rho);
+        cudaDeviceSynchronize();
+
+
+
+        // Potenciál kiszámolása EZ NEM MEGY GYORSABBAN
         fi[0]=0;
         for(i=0; i<Ng; i++)
             fi[0]+=(i+1)*rho[i];
@@ -156,6 +160,7 @@ int main(void)
             fi[i]=rho[i-1]+2*fi[i-1]-fi[i-2];
         }
         for(i=0; i<Ng; i++)
+
         // Ábra generálása
         if(t==Ta)
         {
@@ -164,31 +169,31 @@ int main(void)
             filePrinter(Ng, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
             filePrinter(Ng, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
         }
-        //TODO
-        for(i=0; i<Ng; i++)
-        {
-            fi[i]+=fih[i]*fihSzorzo;
-        }
+        osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, fihSzorzo, 1, fih, fi, fi);
+        cudaDeviceSynchronize();
+
         // Ábra generálása
         if(t==Ta)
         {
             fi[Ng]=fi[0];
             filePrinter(Ng, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
         }
+
         // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
-        E[t%2][0]=fi[Ng-1]-fi[1];
-        E[t%2][Ng-1]=fi[Ng-2]-fi[0];
+        //E[t%2][0]=fi[Ng-1]-fi[1];
+        //E[t%2][Ng-1]=fi[Ng-2]-fi[0];
         //TODO
-        for(i=1;i<Ng-1;i++)
+        // IDE NYÚLTAM BELE AZ INDEXEKBE
+        for(i=0;i<Ng;i++)
         {
-            E[t%2][i]=fi[i-1]-fi[i+1];
+            E[t%2][i]=fi[(i-1+Ng)%Ng]-fi[(i+1)%Ng];
         }
 
         // A következő sebességek kiszámolása
         for(i=0;i<Np;i++) //TODO
         // ez volt eredetileg:            v[t%2][i] = v[(t-1)%2][i] - (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
             v[t%2][i] = v[(t-1)%2][i] + (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
-        for(i=0;i<Np;i++)
+        for(i=0;i<Np;i++) //TODO
         {
             vatlag += v[t%2][i];
             if(abs(v[t%2][i]) > Ng)
@@ -235,12 +240,16 @@ int main(void)
 }
 
 
-// function to add the elements of two arrays
+// function to osszegAXBY the elements of two arrays
 __global__
-void add(int n, float a, float b, float *x, float *y, float *z)
+void osszegAXBY(int n, float a, float b, float *x, float *y, float *z)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
+    if(b==0)
+        for (int i = index; i < n; i += stride)
+            z[i] = a*x[i];
+    else
         for (int i = index; i < n; i += stride)
             z[i] = a*x[i] + b*y[i];
 }
@@ -274,26 +283,13 @@ void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
         indexek[i] = ((int)round(helyek[i])%cellaSzam + cellaSzam)%cellaSzam;
 }
 
-
-/*
-void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
+__global__
+void init(int len, float value, float* vector)
 {
-    for(int k=0; k<reszecskeSzam; k++)
-            indexek[k] = ((int)round(helyek[k])%cellaSzam + cellaSzam)%cellaSzam;
-}
-*/
-
-
-
-void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel)
-{
-    ofstream myFile;
-    myFile.open(fileNev);
-    myFile << "# " << xLabel << " " << yLabel << endl;
-    for(int i=0; i<vektorHossz; i++)
-        myFile << x[i] << " " << y[i] << endl;
-    myFile << vektorHossz << " " << y[0] << endl;
-    myFile.close();
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < len; i += stride)
+        vector[i] = value;
 }
 
 void fihGenerator(int len, float szorzo, float* outVector)
@@ -304,6 +300,17 @@ void fihGenerator(int len, float szorzo, float* outVector)
         outVector[i] = szorzo*(-256*y*y*y*y + 512*y*y*y - 352*y*y + 96*y - 9);
         y = y + 1.0/len;
     }
+}
+
+void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel)
+{
+    ofstream myFile;
+    myFile.open(fileNev);
+    myFile << "# " << xLabel << " " << yLabel << endl;
+    for(int i=0; i<vektorHossz; i++)
+        myFile << x[i] << " " << y[i] << endl;
+    myFile << vektorHossz << " " << y[0] << endl;
+    myFile.close();
 }
 
 void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp)
@@ -319,13 +326,3 @@ void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, floa
         xp[1][i] = xp[0][i]+vp[0][i];
     }
 }
-
-__global__
-void init(int len, float value, float* vector)
-{
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x * gridDim.x;
-    for (int i = index; i < len; i += stride)
-        vector[i] = value;
-}
-

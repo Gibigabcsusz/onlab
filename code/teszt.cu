@@ -40,6 +40,8 @@ void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
 }
 
 
+
+
 int main(void)
 {
     int N = 1<<5;
