@@ -251,6 +251,7 @@ void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLa
     myFile << "# " << xLabel << " " << yLabel << endl;
     for(int i=0; i<vektorHossz; i++)
         myFile << x[i] << " " << y[i] << endl;
+    myFile << x[0] << " " << y[0] << endl;
     myFile.close();
 }
 
