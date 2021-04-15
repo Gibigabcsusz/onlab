@@ -17,7 +17,7 @@
 using namespace std;
 
 __global__ void osszegAXBY(int n, float a, float b, float *x, float *y, float *z);
-__global__ void ujSebesseg(int n, float a, float b, float *x, float *y, float *z);
+__global__ void ujE(int cellaSzam, float* fi1, float* fi2, float* eredmeny);
 __global__ void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek);
 __global__ void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);
 __global__ void init(int len, float value, float* vector);
@@ -47,7 +47,7 @@ int main(void)
     float vatlag = 0;
 
     // Tároló vektorok inicializálása a device-on
-    float **x, **v, *rho, *fi, *fih, **E;
+    float **x, **v, *rho, *fi, *fih, **E, *fiMasolat;
     int *p;
     cudaMallocManaged(&x, 2*sizeof(float*));
     cudaMallocManaged(&v, 2*sizeof(float*));
@@ -58,6 +58,7 @@ int main(void)
     cudaMallocManaged(&p, Np*sizeof(int));
     cudaMallocManaged(&rho, Ng*sizeof(float));
     cudaMallocManaged(&fi, Ng*sizeof(float));
+    cudaMallocManaged(&fiMasolat, Ng*sizeof(float));
     cudaMallocManaged(&fih, Ng*sizeof(float));
     cudaMallocManaged(&E, 2*sizeof(float*));
     cudaMallocManaged(&(E[0]), Np*sizeof(float));
@@ -180,14 +181,9 @@ int main(void)
         }
 
         // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
-        //E[t%2][0]=fi[Ng-1]-fi[1];
-        //E[t%2][Ng-1]=fi[Ng-2]-fi[0];
-        //TODO
-        // IDE NYÚLTAM BELE AZ INDEXEKBE
-        for(i=0;i<Ng;i++)
-        {
-            E[t%2][i]=fi[(i-1+Ng)%Ng]-fi[(i+1)%Ng];
-        }
+        cudaMemcpy(fiMasolat, fi, Ng*sizeof(float), cudaMemcpyDeviceToDevice);
+        ujE<<<blockSize, numBlocksGrid>>>(Ng, fi, fiMasolat, E[t%2]);
+        cudaDeviceSynchronize();
 
         // A következő sebességek kiszámolása
         for(i=0;i<Np;i++) //TODO
@@ -211,6 +207,7 @@ int main(void)
         // A következő helyek kiszámolása
         for(i=0;i<Np;i++)
             x[(t+1)%2][i] = x[t%2][i] + (v[(t-1)%2][i] + v[t%2][i])/2;
+
         ciklikus<<<blockSize, numBlocksParticles>>>(Ng, Np, x[(t+1)%2]);
         cudaDeviceSynchronize();
     }
@@ -290,6 +287,15 @@ void init(int len, float value, float* vector)
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < len; i += stride)
         vector[i] = value;
+}
+
+__global__
+void ujE(int cellaSzam, float* fi1, float* fi2, float* eredmeny)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for(int i=index; i<cellaSzam; i+=stride)
+        eredmeny[i]=fi1[(i-1+cellaSzam)%cellaSzam]-fi2[(i+1)%cellaSzam];
 }
 
 void fihGenerator(int len, float szorzo, float* outVector)
