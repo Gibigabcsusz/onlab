@@ -18,7 +18,7 @@ using namespace std;
 
 __global__ void add(int n, float a, float b, float *x, float *y, float *z);
 __global__ void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek);
-void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);//TODO
+__global__ void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);//TODO
 void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
 void fihGenerator(int len, float szorzo, float* outVector);//TODO
 void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp);
@@ -74,8 +74,8 @@ int main(void)
     cudaDeviceSynchronize();
 
     // Részecskék cellákba sorolása
-    besorol(Np, Ng, x[0], p);
-
+    besorol<<<blockSize, numBlocksParticles>>>(Np, Ng, x[0], p);
+    cudaDeviceSynchronize();
 
     // Töltéssűrűség kiszámolása TODO
     init<<<blockSize, numBlocksGrid >>>(Ng, -Nc, rho);
@@ -129,7 +129,8 @@ int main(void)
     for(t=1;t<T+1;t++)
     {
         // a részecskéket cellákhoz rendeljük a legújabb kiszámolt pozíciók alapján
-        besorol(Np, Ng, x[t%2], p);
+        besorol<<<blockSize, numBlocksParticles>>>(Np, Ng, x[t%2], p);
+        cudaDeviceSynchronize();
 
         // Töltéssűrűség kiszámolása TODO
         init<<<blockSize, numBlocksGrid>>>(Ng, -Nc, rho);
@@ -264,11 +265,24 @@ void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek)
 
 
 // a helyek változóban tárolt részecske x értékeket besorolja a cellákba és a cellák indexeit eltárolja
+__global__
+void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for(int i=index; i<reszecskeSzam; i+=stride)
+        indexek[i] = ((int)round(helyek[i])%cellaSzam + cellaSzam)%cellaSzam;
+}
+
+
+/*
 void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
 {
     for(int k=0; k<reszecskeSzam; k++)
             indexek[k] = ((int)round(helyek[k])%cellaSzam + cellaSzam)%cellaSzam;
 }
+*/
+
 
 
 void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel)

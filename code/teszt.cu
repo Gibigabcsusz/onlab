@@ -30,20 +30,31 @@ void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek)
     }
 }
 
+__global__
+void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for(int i=index; i<reszecskeSzam; i+=stride)
+            indexek[i] = ((int)round(helyek[i])%cellaSzam + cellaSzam)%cellaSzam;
+}
+
+
 int main(void)
 {
     int N = 1<<5;
-    float *x, *y;
+    float *y;
 
+    int *x;
 
     // Allocate Unified Memory -- accessible from CPU or GPU
-    cudaMallocManaged(&x, N*sizeof(float));
+    cudaMallocManaged(&x, N*sizeof(int));
     cudaMallocManaged(&y, N*sizeof(float));
 
     // initialize x and y arrays on the host
     for (int i = 0; i < N; i++) {
         x[i] = 1.0f;
-        y[i] = 5.0f*i-N;
+        y[i] = 0.1f*i-3;
     }
 
     // Launch kernel on 1M elements on the GPU
@@ -56,10 +67,11 @@ int main(void)
 
     //add<<<numBlocks, blockSize>>>(N, 1.0f, 1.0f, x, y, y);
 
-    ciklikus<<<numBlocks, blockSize >>>(N, N, y);
-
+    besorol<<<numBlocks, blockSize>>>(N, N, y, x);
     // Wait for GPU to finish before accessing on host
     cudaDeviceSynchronize();
+
+    
 
     auto stopp = high_resolution_clock::now();
 
@@ -72,7 +84,7 @@ int main(void)
     // Check for errors (all values should be 3.0f)
     float maxError = 0.0f;
     for (int i = 0; i < N; i++)
-        cout << i << " - " << y[i] << endl;
+        cout << x[i] << " - " << y[i] << endl;
     //    maxError = fmax(maxError, fabs(y[i]-3.0f));
     std::cout << "Max error: " << maxError << std::endl;
 
