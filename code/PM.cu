@@ -142,9 +142,9 @@ int main(void)
         if(t==Ta)
         {
             fi[Ng]=fi[0];
-            filePrinter(Ng+1, sorozat, fih, "output/fih.dat", "X", "Potenciál", "Pot");
-            filePrinter(Ng+1, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
-            filePrinter(Ng+1, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
+            filePrinter(Ng, sorozat, fih, "output/fih.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
         }
         //TODO
         for(i=0; i<Ng; i++)
@@ -155,7 +155,7 @@ int main(void)
         if(t==Ta)
         {
             fi[Ng]=fi[0];
-            filePrinter(Ng+1, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
         }
         // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
         E[t%2][0]=fi[Ng-1]-fi[1];
