@@ -16,8 +16,8 @@
 
 using namespace std;
 
-void add(int n, float a, float b, float *x, float *y, float *z); //TODO
-void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek); //TODO
+__global__ void add(int n, float a, float b, float *x, float *y, float *z);
+__global__ void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek);
 void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);//TODO
 void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
 void fihGenerator(int len, float szorzo, float* outVector);//TODO
@@ -36,23 +36,16 @@ int main(void)
     const float omDT = 0.2;
     const float fihSzorzo = 1;
     const long int seedNum = 0;
+    const int blockSize = 32;
+    const int numBlocksGrid = (Ng + blockSize - 1) / blockSize;
+    const int numBlocksParticles = (Np + blockSize - 1) / blockSize;
 
-
-    // Tároló vektorok inicializálása a host-on
-/*    float *x[2] = {(float*)malloc(Np*sizeof(float)), (float*)malloc(Np*sizeof(float))};
-    float *v[2] = {(float*)malloc(Np*sizeof(float)), (float*)malloc(Np*sizeof(float))};
-    int *p = (int*)malloc(Np*sizeof(int));
-    float *rho = (float*)malloc(Ng*sizeof(float));
-    float *fi = (float*)malloc(Ng*sizeof(float));
-    float *fih = (float*)malloc(Ng*sizeof(float));
-    float *E[2] = {(float*)malloc(Ng*sizeof(float)), (float*)malloc(Ng*sizeof(float))}; */
     float *sorozat = (float*)malloc(Ng*sizeof(float));
     float rhoSzorzo = omDT*omDT/2/Nc;
     int i, t;
     float vatlag = 0;
 
     // Tároló vektorok inicializálása a device-on
-    // DUPLA HOSSZÚ VEKTOROK KELLENEK
     float **x, **v, *rho, *fi, *fih, **E;
     int *p;
     cudaMallocManaged(&x, 2*sizeof(float*));
@@ -70,8 +63,6 @@ int main(void)
     cudaMallocManaged(&(E[1]), Np*sizeof(float));
 
 
-
-
     fihGenerator(Ng, fihSzorzo, fih);
 
     for(i=0; i<Ng; i++)
@@ -79,14 +70,17 @@ int main(void)
 
     // Kiinduló állapotok legenerálása
     kezdetiXV(seedNum, maxvin, Np, Ng, x, v);
+    ciklikus<<<blockSize, numBlocksParticles>>>((float)Ng, Np, x[1]);
+    cudaDeviceSynchronize();
 
     // Részecskék cellákba sorolása
     besorol(Np, Ng, x[0], p);
 
 
     // Töltéssűrűség kiszámolása TODO
-    for(i=0; i<Ng; i++) // A háttér-töltésűrűségre inicializálás
-        rho[i] = -Nc;
+    init<<<blockSize, numBlocksGrid >>>(Ng, -Nc, rho);
+    cudaDeviceSynchronize();
+
     for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása
         rho[p[i]]++;
     for(i=0; i<Ng; i++) // Az eredmény skálázása
@@ -138,8 +132,10 @@ int main(void)
         besorol(Np, Ng, x[t%2], p);
 
         // Töltéssűrűség kiszámolása TODO
-        for(i=0; i<Ng; i++) // A háttér-töltésűrűségre inicializálás
-            rho[i] = -Nc;
+        init<<<blockSize, numBlocksGrid>>>(Ng, -Nc, rho);
+        cudaDeviceSynchronize();
+
+
         for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása
             rho[p[i]]++;
         for(i=0; i<Ng; i++) // Az eredmény skálázása
@@ -209,10 +205,8 @@ int main(void)
         // A következő helyek kiszámolása
         for(i=0;i<Np;i++)
             x[(t+1)%2][i] = x[t%2][i] + (v[(t-1)%2][i] + v[t%2][i])/2;
-        ciklikus(Ng, Np, x[(t+1)%2]);
-
-
-
+        ciklikus<<<blockSize, numBlocksParticles>>>(Ng, Np, x[(t+1)%2]);
+        cudaDeviceSynchronize();
     }
 
 
@@ -240,26 +234,34 @@ int main(void)
 }
 
 
-// function to add the elements of two arrays TODO
-void add(int n, float *x, float *y, float *z)
+// function to add the elements of two arrays
+__global__
+void add(int n, float a, float b, float *x, float *y, float *z)
 {
-    for (int i = 0; i < n; i++)
-        z[i] = x[i] + y[i];
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+        for (int i = index; i < n; i += stride)
+            z[i] = a*x[i] + b*y[i];
 }
 
 
 // ez a ciklikus szimulációs teret biztosítja, egyelőre csak akkor, ha
 // a részecskék legnagyobb sebessége kisebb, mint Ng
+__global__
 void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek)
 {
-    for(int k=0; k<reszecskeSzam; k++)
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for(int i = index; i < reszecskeSzam; i += stride)
     {
-        if(helyek[k] < -0.5)
-            helyek[k] += cellaSzam;
-        if(helyek[k] > cellaSzam-0.5)
-            helyek[k] -= cellaSzam;
+        if(helyek[i] < -0.5)
+            helyek[i] += cellaSzam;
+        if(helyek[i] > cellaSzam-0.5)
+            helyek[i] -= cellaSzam;
     }
 }
+
+
 
 // a helyek változóban tárolt részecske x értékeket besorolja a cellákba és a cellák indexeit eltárolja
 void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
@@ -302,7 +304,6 @@ void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, floa
         vp[0][i] = unifv(re);
         xp[1][i] = xp[0][i]+vp[0][i];
     }
-    ciklikus(reszecskeSzam, cellaSzam, xp[1]);
 }
 
 __global__

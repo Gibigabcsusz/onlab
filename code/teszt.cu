@@ -12,15 +12,27 @@ void add(int n, float a, float b, float *x, float *y, float *z)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
-    for (int i = index; i < n; i += stride)
-        z[i] = a*x[i] + b*y[i];
+        for (int i = index; i < n; i += stride)
+            z[i] = a*x[i] + b*y[i];
 }
 
-
+__global__
+void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for(int i = index; i < reszecskeSzam; i += stride)
+    {
+        if(helyek[i] < -0.5)
+            helyek[i] += cellaSzam;
+        if(helyek[i] > cellaSzam-0.5)
+            helyek[i] -= cellaSzam;
+    }
+}
 
 int main(void)
 {
-    int N = 1<<25;
+    int N = 1<<5;
     float *x, *y;
 
 
@@ -31,7 +43,7 @@ int main(void)
     // initialize x and y arrays on the host
     for (int i = 0; i < N; i++) {
         x[i] = 1.0f;
-        y[i] = 2.0f;
+        y[i] = 5.0f*i-N;
     }
 
     // Launch kernel on 1M elements on the GPU
@@ -42,7 +54,9 @@ int main(void)
 
     auto startt = high_resolution_clock::now();
 
-    add<<<numBlocks, blockSize>>>(N, 1.0f, 1.0f, x, y, y);
+    //add<<<numBlocks, blockSize>>>(N, 1.0f, 1.0f, x, y, y);
+
+    ciklikus<<<numBlocks, blockSize >>>(N, N, y);
 
     // Wait for GPU to finish before accessing on host
     cudaDeviceSynchronize();
@@ -58,7 +72,8 @@ int main(void)
     // Check for errors (all values should be 3.0f)
     float maxError = 0.0f;
     for (int i = 0; i < N; i++)
-        maxError = fmax(maxError, fabs(y[i]-3.0f));
+        cout << i << " - " << y[i] << endl;
+    //    maxError = fmax(maxError, fabs(y[i]-3.0f));
     std::cout << "Max error: " << maxError << std::endl;
 
 
