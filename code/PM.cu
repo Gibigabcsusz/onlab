@@ -3,14 +3,21 @@
 #include <random>
 #include <iomanip>
 #include <fstream>
+#include <chrono>
+#include <typeinfo>
+
 
 using namespace std;
+using namespace std::chrono;
 
 __global__ void osszegAXBY(int n, float a, float b, float *x, float *y, float *z);
+__global__ void osszeg(int n, float *x, float *y);
 __global__ void ujE(int cellaSzam, float* fi1, float* fi2, float* eredmeny);
 __global__ void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek);
 __global__ void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);
 __global__ void init(int len, float value, float* vector);
+__global__ void toltessuruseg(int cellaSzam, int reszecskeSzam, int reszToltesSzam, int* indexek, float** reszRho);
+
 void fihGenerator(int len, float szorzo, float* outVector);
 void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
 void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp);
@@ -20,7 +27,7 @@ int main(void)
     // Bemenetek megadása
     const int T = 200;
     const int Ta = 199; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 100;
+    const int Ng = 1000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 1;
@@ -30,6 +37,8 @@ int main(void)
     const int blockSize = 32;
     const int numBlocksGrid = (Ng + blockSize - 1) / blockSize;
     const int numBlocksParticles = (Np + blockSize - 1) / blockSize;
+    const int Nr = 1<<3; // résztöltések száma, érdemes 2^n alakúnak lennie
+
 
     float *sorozat = (float*)malloc(Ng*sizeof(float));
     float rhoSzorzo = omDT*omDT/2/Nc;
@@ -37,10 +46,11 @@ int main(void)
     float vatlag = 0;
 
     // Tároló vektorok inicializálása a device-on
-    float **x, **v, *rho, *fi, *fih, **E, *fiMasolat;
+    float **x, **v, *rho, *fi, *fih, **E, *fiMasolat, **rRho, *egysegGrid;
     int *p;
 
     cudaMallocManaged(&x, 2*sizeof(float*));
+    cudaMallocManaged(&egysegGrid, Ng*sizeof(float*));
     cudaMallocManaged(&v, 2*sizeof(float*));
     cudaMallocManaged(&(x[0]), Np*sizeof(float));
     cudaMallocManaged(&(x[1]), Np*sizeof(float));
@@ -54,6 +64,13 @@ int main(void)
     cudaMallocManaged(&E, 2*sizeof(float*));
     cudaMallocManaged(&(E[0]), Np*sizeof(float));
     cudaMallocManaged(&(E[1]), Np*sizeof(float));
+    cudaMallocManaged(&rRho, Nr*sizeof(float*));
+    for(i=0; i<Nr; i++)
+        cudaMallocManaged(&rRho[i], Ng*sizeof(float));
+
+    // egységvektor generálás
+    init<<<numBlocksGrid, blockSize>>>(Ng, 1, egysegGrid);
+    cudaDeviceSynchronize();
 
     // a háttérpotenciál vektorának generálása
     fihGenerator(Ng, fihSzorzo, fih);
@@ -67,20 +84,30 @@ int main(void)
     ciklikus<<<blockSize, numBlocksParticles>>>((float)Ng, Np, x[1]);
     cudaDeviceSynchronize();
 
+    // időmérés indítása
+    auto startt = high_resolution_clock::now();
+
     // Részecskék cellákba sorolása
     besorol<<<blockSize, numBlocksParticles>>>(Np, Ng, x[0], p);
     cudaDeviceSynchronize();
 
-    // Töltéssűrűség kiszámolása
-    init<<<blockSize, numBlocksGrid >>>(Ng, -Nc, rho);
+    // a részecskék besorolása, innen a rho. Ennek skálázása
+    init<<<numBlocksGrid, blockSize>>>(Ng, -Nc, rho);
     cudaDeviceSynchronize();
-
-    for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása //TODO
-        rho[p[i]]++;
-
-    osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, rhoSzorzo, 0, rho, rho, rho);
+    for(i=0; i<Nr; i++)
+    {
+        init<<<numBlocksGrid, blockSize>>>(Ng, 0, rRho[i]);
+        cudaDeviceSynchronize();
+    }
+    toltessuruseg<<<numBlocksGrid, blockSize>>>(Ng, Np, Nr, p, rRho);
     cudaDeviceSynchronize();
-
+    for(i=0; i<Nr; i++)
+    {
+        osszeg<<<numBlocksGrid, blockSize>>>(Ng, rRho[i], rho);
+        cudaDeviceSynchronize();
+    }
+    osszegAXBY<<<numBlocksGrid, blockSize>>>(Ng, rhoSzorzo, 0.0f, rho, rho, rho);
+    cudaDeviceSynchronize();
 
     // Potenciál kiszámolása
     fi[0]=0;
@@ -93,7 +120,6 @@ int main(void)
     {
         fi[i]=rho[i-1]+2*fi[i-1]-fi[i-2];
     }
-
     osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, fihSzorzo, 1, fih, fi, fi);
     cudaDeviceSynchronize();
 
@@ -118,16 +144,25 @@ int main(void)
         besorol<<<blockSize, numBlocksParticles>>>(Np, Ng, x[t%2], p);
         cudaDeviceSynchronize();
 
-        // Töltéssűrűség kiszámolása
-        init<<<blockSize, numBlocksGrid>>>(Ng, -Nc, rho);
+
+        // a járulékos töltéssűrűségének kiszámolása, innen a rho. Ennek skálázása
+        init<<<numBlocksGrid, blockSize>>>(Ng, -Nc, rho);
+        cudaDeviceSynchronize();
+        for(i=0; i<Nr; i++)
+        {
+            init<<<numBlocksGrid, blockSize>>>(Ng, 0, rRho[i]);
+            cudaDeviceSynchronize();
+        }
+        toltessuruseg<<<numBlocksGrid, blockSize>>>(Ng, Np, Nr, p, rRho);
+        cudaDeviceSynchronize();
+        for(i=0; i<Nr; i++)
+        {
+            osszeg<<<numBlocksGrid, blockSize>>>(Ng, rRho[i], rho);
+            cudaDeviceSynchronize();
+        }
+        osszegAXBY<<<numBlocksGrid, blockSize>>>(Ng, rhoSzorzo, 0.0f, rho, rho, rho);
         cudaDeviceSynchronize();
 
-        for(i=0; i<Np; i++) // A részecskék járulékos töltéssűrűségeinek hozzáadása TODO
-            rho[p[i]]++;
-
-        //az eredmény skálázása
-        osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, rhoSzorzo, 0, rho, rho, rho);
-        cudaDeviceSynchronize();
 
         // Potenciál kiszámolása EZ NEM MEGY GYORSABBAN
         fi[0]=0;
@@ -193,10 +228,19 @@ int main(void)
         cudaDeviceSynchronize();
     }
 
+    auto stopp = high_resolution_clock::now();
+
+    auto duration = duration_cast<milliseconds>(stopp - startt);
+    int millisecs = duration.count();
+    cout << "Chrono meres: " << millisecs << " ms" << endl;
+
+
+
 
     // felszabadítás
     free(sorozat);
 
+    cudaFree(egysegGrid);
     cudaFree(x[0]);
     cudaFree(x[1]);
     cudaFree(x);
@@ -210,6 +254,9 @@ int main(void)
     cudaFree(E[0]);
     cudaFree(E[1]);
     cudaFree(E);
+    for(i=0; i<Nr; i++)
+        cudaFree(rRho[i]);
+    cudaFree(rRho);
 
 
 
@@ -230,6 +277,18 @@ void osszegAXBY(int n, float a, float b, float *x, float *y, float *z)
     else
         for (int i = index; i < n; i += stride)
             z[i] = a*x[i] + b*y[i];
+}
+
+
+// egy egyszerűbb és gyorsabb függvény két n hosszú vektor
+// elemenkénti összeadására,
+// aminek az eredménye a második vektorban tárolódik el
+__global__ void osszeg(int n, float *x, float *y)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride)
+        y[i] = x[i] + y[i];
 }
 
 
@@ -278,6 +337,21 @@ void ujE(int cellaSzam, float* fi1, float* fi2, float* eredmeny)
     for(int i=index; i<cellaSzam; i+=stride)
         eredmeny[i]=fi1[(i-1+cellaSzam)%cellaSzam]-fi2[(i+1)%cellaSzam];
 }
+
+__global__
+void toltessuruseg(int cellaSzam, int reszecskeSzam, int reszToltesSzam, int* indexek, float** reszRho)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    int reszReszecskeSzam = (reszecskeSzam + reszToltesSzam - 1)/reszToltesSzam;
+    for(int i=index; i<reszToltesSzam; i+=stride)
+    {
+        for(int j=i*reszReszecskeSzam; j<(i+1)*reszReszecskeSzam && j<reszecskeSzam; j++)
+            reszRho[i][indexek[j]]+=1.0f;
+    }
+}
+
+
 
 void fihGenerator(int len, float szorzo, float* outVector)
 {

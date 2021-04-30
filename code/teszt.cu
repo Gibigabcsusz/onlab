@@ -1,6 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include <chrono>
+#include <iomanip>
 
 
 using namespace std;
@@ -15,6 +16,50 @@ void add(int n, float a, float b, float *x, float *y, float *z)
         for (int i = index; i < n; i += stride)
             z[i] = a*x[i] + b*y[i];
 }
+
+__global__
+void init(int len, float value, float* vector)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < len; i += stride)
+        vector[i] = value;
+}
+
+__global__
+void osszeg(int n, float *x, float *y)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+        for (int i = index; i < n; i += stride)
+            y[i] += x[i];
+}
+
+
+__global__
+void kiir(int n, int *a)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    int osszegIndex = blockIdx.x;
+    for(int i=index; i<n; i+=stride)
+        a[i]=osszegIndex;
+}
+
+__global__
+void toltessuruseg(int cellaSzam, int reszecskeSzam, int reszToltesSzam, int* indexek, float** reszRho)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+    int reszReszecskeSzam = (reszecskeSzam + reszToltesSzam - 1)/reszToltesSzam;
+    for(int i=index; i<reszToltesSzam; i+=stride)
+    {
+        for(int j=i*reszReszecskeSzam; j<(i+1)*reszReszecskeSzam && j<reszecskeSzam; j++)
+            reszRho[i][indexek[j]]+=1.0f;
+    }
+}
+
+
 
 __global__
 void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek)
@@ -50,58 +95,77 @@ __global__ void ujE(int cellaSzam, float* fi1, float* fi2, float* eredmeny)
 
 int main(void)
 {
-    int N = 1<<5;
-    float *y, *x, *z;
+    int Ng = 10, Nr = 11, Np = 200, i, j, *p;
+    float **rRho, *rho, *sumRho;
+    cudaMallocManaged(&rRho, Nr*sizeof(float*));
+    for(i=0; i<Nr; i++)
+        cudaMallocManaged(&rRho[i], Ng*sizeof(float));
+    cudaMallocManaged(&p, Np*sizeof(int));
+    cudaMallocManaged(&rho, Ng*sizeof(float));
+    cudaMallocManaged(&sumRho, Ng*sizeof(float));
 
-
-    // Allocate Unified Memory -- accessible from CPU or GPU
-    cudaMallocManaged(&x, N*sizeof(int));
-    cudaMallocManaged(&y, N*sizeof(float));
-    cudaMallocManaged(&z, N*sizeof(float));
-
-    // initialize x and y arrays on the host
-    for (int i = 0; i < N; i++) {
-        x[i] = 1.0f;
-        y[i] = i;
-    }
-
-    // Launch kernel on 1M elements on the GPU
-    //int blockSize = 32;
-
-    int blockSize = 32;
-    int numBlocks = (N + blockSize - 1) / blockSize;
-
-    auto startt = high_resolution_clock::now();
-
-    //add<<<numBlocks, blockSize>>>(N, 1.0f, 1.0f, x, y, y);
-    cudaMemcpy(x, y, N*sizeof(float), cudaMemcpyDeviceToDevice);
-
-    ujE<<<numBlocks, blockSize>>>(N, x, y, z);
-
-
-    // Wait for GPU to finish before accessing on host
+    init<<<4, 32>>>(Ng, 0, sumRho);
     cudaDeviceSynchronize();
 
+    for(i=0; i<Np; i++)
+    {
+        p[i]=i%Ng;
+        //cout << p[i] << endl;
+    }
 
-    auto stopp = high_resolution_clock::now();
+    //void toltessuruseg(int cellaSzam, int reszecskeSzam, int reszToltesSzam, int* indexek, float** reszRho)
+    toltessuruseg<<<5, 32>>>(Ng, Np, Nr, p, rRho);
+    cudaDeviceSynchronize();
 
-    auto duration = duration_cast<nanoseconds>(stopp - startt);
-    int nanosecs = duration.count()%1000;
-    int microsecs = ((duration.count()-nanosecs)/1000)%1000;
-    int millisecs = ((duration.count()-nanosecs)/1000-microsecs)/1000;
-    cout << "Chrono meres: " << millisecs << " ms  +  " << microsecs << " us  +  " << nanosecs << " ns" << endl;
+    for(i=0; i<Nr; i++)
+    {
+        cout << "rRho[" << setw(2) << setfill(' ') << right << i << "]:  ";
+        for(j=0; j<Ng; j++)
+            cout << setw(4) << setfill(' ') << right << setprecision(4) << rRho[i][j];
+        cout << endl;
+    }
 
-    // Check for errors (all values should be 3.0f)
-    float maxError = 0.0f;
-    for (int i = 0; i < N; i++)
-        cout << x[i] << " - " << y[i] << z[i] << endl;
-    //    maxError = fmax(maxError, fabs(y[i]-3.0f));
-    std::cout << "Max error: " << maxError << std::endl;
+    for(i=0; i<Nr; i++)
+        for(j=0; j<Ng; j++)
+            sumRho[j]+=rRho[i][j];
+
+    for(i=0; i<Np; i++)
+        rho[p[i]]++;
+
+    // a tényleg tesztelés alatt álló rész
+    for(i=1; i<Nr; i++)
+    {
+        osszeg<<<5, 32>>>(Ng, rRho[i], rRho[0]);
+        cudaDeviceSynchronize();
+    }
 
 
-    // Free memory
-    cudaFree(x);
-    cudaFree(y);
+    cout << endl << endl;
+
+    cout << "rho =      ";
+    for(j=0; j<Ng; j++)
+        cout << setw(4) << setfill(' ') << right << setprecision(4) << rho[j];
+    cout << endl;
+
+    cout << "sumRho =   ";
+    for(j=0; j<Ng; j++)
+        cout << setw(4) << setfill(' ') << right << setprecision(4) << sumRho[j];
+    cout << endl;
+
+    cout << "rRho[0] =  ";
+    for(j=0; j<Ng; j++)
+        cout << setw(4) << setfill(' ') << right << setprecision(4) << rRho[0][j];
+    cout << endl;
+
+
+    // felszabadulás
+    for(i=0; i<Nr; i++)
+        cudaFree(rRho[i]);
+    cudaFree(rRho);
+    cudaFree(p);
+    cudaFree(rho);
+    cudaFree(sumRho);
+
 
     return 0;
 }

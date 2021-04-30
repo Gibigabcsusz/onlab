@@ -3,28 +3,23 @@
 #include <random>
 #include <iomanip>
 #include <fstream>
+#include <chrono>
+#include <typeinfo>
+
 
 using namespace std;
+using namespace std::chrono;
 
 void add(int n, double *x, double *y, double *z); //TODO
 void ciklikus(double cellaSzam, int reszecskeSzam, double* helyek); //TODO
 void besorol(int reszecskeSzam, int cellaSzam, double* helyek, int* indexek);
 void filePrinter(int vektorHossz, double* x, double* y, string fileNev, string xLabel, string yLabel, string dataLabel);
-void fihGenerator(int len, double* outVector, )
-{
-    double y=0;
-    for(i=0; i<Ng+1; i++)
-    {
-        fih[i] = fihSzorzo*(-256*y*y*y*y + 512*y*y*y - 352*y*y + 96*y - 9);
-        y = y + 1.0/Ng;
-    }
-}
 
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 2000;
-    const int Ta = 1990; // az ábrázolás időlépésének száma, min=2
+    const int T = 200;
+    const int Ta = 199; // az ábrázolás időlépésének száma, min=2
     const int Ng = 1000;
     const int Nc = 15;
     const int Np = Nc*Ng;
@@ -76,6 +71,8 @@ int main(void)
     }
     ciklikus(Np, Ng, x[1]);
 
+    // időmérés indítása
+    auto startt = high_resolution_clock::now();
 
     // Részecskék cellákba sorolása
     besorol(Np, Ng, x[0], p);
@@ -214,7 +211,11 @@ int main(void)
 
     }
 
+    auto stopp = high_resolution_clock::now();
 
+    auto duration = duration_cast<milliseconds>(stopp - startt);
+    int millisecs = duration.count();
+    cout << "Chrono meres: " << millisecs << " ms" << endl;
 
     return 0;
 }
