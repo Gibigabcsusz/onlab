@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <fstream>
 #include <chrono>
-#include <typeinfo>
+//#include <typeinfo>
 
 
 using namespace std;
@@ -25,21 +25,19 @@ void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, floa
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 200;
-    const int Ta = 199; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 1000;
+    const int T = 1;
+    const int Ta = 1; // az ábrázolás időlépésének száma, min=2
+    const int Ng = 1000000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 1;
     const float omDT = 0.2;
     const float fihSzorzo = 1;
-    const long int seedNum = 0;
+    const long int seedNum = 12;
     const int blockSize = 32;
     const int numBlocksGrid = (Ng + blockSize - 1) / blockSize;
     const int numBlocksParticles = (Np + blockSize - 1) / blockSize;
-    const int Nr = 1<<3; // résztöltések száma, érdemes 2^n alakúnak lennie
-
-
+    const int Nr = 8; // résztöltések száma, érdemes 2^n alakúnak lennie
     float *sorozat = (float*)malloc(Ng*sizeof(float));
     float rhoSzorzo = omDT*omDT/2/Nc;
     int i, t;
@@ -85,6 +83,13 @@ int main(void)
     cudaDeviceSynchronize();
 
     // időmérés indítása
+
+    auto check4 = high_resolution_clock::now();
+    auto check5 = high_resolution_clock::now();
+    auto check6 = high_resolution_clock::now();
+    auto check7 = high_resolution_clock::now();
+    auto check8 = high_resolution_clock::now();
+    auto check9 = high_resolution_clock::now();
     auto startt = high_resolution_clock::now();
 
     // Részecskék cellákba sorolása
@@ -109,6 +114,8 @@ int main(void)
     osszegAXBY<<<numBlocksGrid, blockSize>>>(Ng, rhoSzorzo, 0.0f, rho, rho, rho);
     cudaDeviceSynchronize();
 
+auto check1 = high_resolution_clock::now();
+
     // Potenciál kiszámolása
     fi[0]=0;
     for(i=0; i<Ng; i++)
@@ -123,10 +130,14 @@ int main(void)
     osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, fihSzorzo, 1, fih, fi, fi);
     cudaDeviceSynchronize();
 
+auto check2 = high_resolution_clock::now();
+
     // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
     cudaMemcpy(fiMasolat, fi, Ng*sizeof(float), cudaMemcpyDeviceToDevice);
     ujE<<<blockSize, numBlocksGrid>>>(Ng, fi, fiMasolat, E[0]);
     cudaDeviceSynchronize();
+
+auto check3 = high_resolution_clock::now();
 
     // Átlagsebesség kiszámolása TODO
     for(i=0;i<Np;i++)
@@ -137,13 +148,15 @@ int main(void)
     ///////////////////
     // a nagy ciklus //
     ///////////////////
-
     for(t=1;t<T+1;t++)
     {
+    check4 = high_resolution_clock::now();
+
         // a részecskéket cellákhoz rendeljük a legújabb kiszámolt pozíciók alapján
         besorol<<<blockSize, numBlocksParticles>>>(Np, Ng, x[t%2], p);
         cudaDeviceSynchronize();
 
+    check5 = high_resolution_clock::now();
 
         // a járulékos töltéssűrűségének kiszámolása, innen a rho. Ennek skálázása
         init<<<numBlocksGrid, blockSize>>>(Ng, -Nc, rho);
@@ -163,6 +176,7 @@ int main(void)
         osszegAXBY<<<numBlocksGrid, blockSize>>>(Ng, rhoSzorzo, 0.0f, rho, rho, rho);
         cudaDeviceSynchronize();
 
+    check6 = high_resolution_clock::now();
 
         // Potenciál kiszámolása EZ NEM MEGY GYORSABBAN
         fi[0]=0;
@@ -175,25 +189,26 @@ int main(void)
         {
             fi[i]=rho[i-1]+2*fi[i-1]-fi[i-2];
         }
-        for(i=0; i<Ng; i++)
 
         // Ábra generálása
         if(t==Ta)
         {
             fi[Ng]=fi[0];
-            filePrinter(Ng, sorozat, fih, "output/fih.dat", "X", "Potenciál", "Pot");
-            filePrinter(Ng, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
-            filePrinter(Ng, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
+            filePrinter(Ng, sorozat, fih, "output/CUfih.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, sorozat, fi, "output/CUfi.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, sorozat, rho, "output/CUrho.dat", "X", "Töltéssűrűség", "rho");
         }
         // külső potenciál hozzáadása
         osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, fihSzorzo, 1, fih, fi, fi);
         cudaDeviceSynchronize();
 
+
+
         // Ábra generálása...
         if(t==Ta)
         {
             fi[Ng]=fi[0];
-            filePrinter(Ng, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, sorozat, fi, "output/CUfi2.dat", "X", "Potenciál", "Pot");
         }
 
         // A térerősség (ami a gyorsulás ellentettje) kiszámolása
@@ -201,9 +216,10 @@ int main(void)
         ujE<<<blockSize, numBlocksGrid>>>(Ng, fi, fiMasolat, E[t%2]);
         cudaDeviceSynchronize();
 
+    check7 = high_resolution_clock::now();
+
         // A következő sebességek kiszámolása EZ NEM MEGY GYORSABBAN, HACSAK NEM LEHET EGYSZERRE UGYANONNAN OLVASNI
         for(i=0;i<Np;i++) //TODO
-        // ez volt eredetileg:            v[t%2][i] = v[(t-1)%2][i] - (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
             v[t%2][i] = v[(t-1)%2][i] + (E[(t-1)%2][p[i]]+E[(t%2)][p[i]])/2;
         for(i=0;i<Np;i++) //TODO
         {
@@ -218,11 +234,13 @@ int main(void)
             v[t%2][i]-=vatlag;
         }
 
-
+    check8 = high_resolution_clock::now();
 
         // A következő helyek kiszámolása TODO
         for(i=0;i<Np;i++)
             x[(t+1)%2][i] = x[t%2][i] + (v[(t-1)%2][i] + v[t%2][i])/2;
+
+    check9 = high_resolution_clock::now();
 
         ciklikus<<<blockSize, numBlocksParticles>>>(Ng, Np, x[(t+1)%2]);
         cudaDeviceSynchronize();
@@ -230,16 +248,42 @@ int main(void)
 
     auto stopp = high_resolution_clock::now();
 
-    auto duration = duration_cast<milliseconds>(stopp - startt);
-    int millisecs = duration.count();
-    cout << "Chrono meres: " << millisecs << " ms" << endl;
-
-
-
+    auto fullduration = duration_cast<microseconds>(stopp - startt);
+    int fullmicrosecs = fullduration.count();
+    auto duration1 = duration_cast<microseconds>(check1 - startt);
+    int microsecs1 = duration1.count();
+    auto duration2 = duration_cast<microseconds>(check2 - check1);
+    int microsecs2 = duration2.count();
+    auto duration3 = duration_cast<microseconds>(check3 - check2);
+    int microsecs3 = duration3.count();
+    auto duration4 = duration_cast<microseconds>(check4 - check3);
+    int microsecs4 = duration4.count();
+    auto duration5 = duration_cast<microseconds>(check5 - check4);
+    int microsecs5 = duration5.count();
+    auto duration6 = duration_cast<microseconds>(check6 - check5);
+    int microsecs6 = duration6.count();
+    auto duration7 = duration_cast<microseconds>(check7 - check6);
+    int microsecs7 = duration7.count();
+    auto duration8 = duration_cast<microseconds>(check8 - check7);
+    int microsecs8 = duration8.count();
+    auto duration9 = duration_cast<microseconds>(check9 - check8);
+    int microsecs9 = duration9.count();
+    auto duration10 = duration_cast<microseconds>(stopp - check9);
+    int microsecs10 = duration10.count();
+    cout << "Sta-Sto: " << fullmicrosecs << " us" << endl;
+    cout << "Sta-Ch1: " << microsecs1 << " us" << endl;
+    cout << "Ch1-Ch2: " << microsecs2 << " us" << endl;
+    cout << "Ch2-Ch3: " << microsecs3 << " us" << endl;
+    cout << "Ch3-Ch4: " << microsecs4 << " us" << endl;
+    cout << "Ch4-Ch5: " << microsecs5 << " us" << endl;
+    cout << "Ch5-Ch6: " << microsecs6 << " us" << endl;
+    cout << "Ch6-Ch7: " << microsecs7 << " us" << endl;
+    cout << "Ch7-Ch8: " << microsecs8 << " us" << endl;
+    cout << "Ch8-Ch9: " << microsecs9 << " us" << endl;
+    cout << "Ch9-Sto: " << microsecs10 << " us" << endl;
 
     // felszabadítás
     free(sorozat);
-
     cudaFree(egysegGrid);
     cudaFree(x[0]);
     cudaFree(x[1]);
@@ -257,9 +301,6 @@ int main(void)
     for(i=0; i<Nr; i++)
         cudaFree(rRho[i]);
     cudaFree(rRho);
-
-
-
 
     return 0;
 }
