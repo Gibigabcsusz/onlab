@@ -27,7 +27,7 @@ int main(void)
     // Bemenetek megadása
     const int T = 1;
     const int Ta = 1; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 1000000;
+    const int Ng = 100000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 1;

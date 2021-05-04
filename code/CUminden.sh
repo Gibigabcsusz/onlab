@@ -2,4 +2,4 @@
 
 nvcc -o bin/CUPM code/PM.cu
 bin/CUPM
-gnuplot -c 'code/plotter'
+gnuplot -c 'code/CUplotter'

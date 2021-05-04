@@ -1,3 +1,2 @@
 set terminal eps; set output 'output/CUrho_plot.eps'; plot 'output/CUrho.dat' with lines
-set terminal eps; set output 'output/CUfi_plot.eps'; plot 'output/CUfi.dat' with lines title "Részecskék potenciálja", 'output/CUfih.dat' with lines title "Külső potenciál", 
-'output/CUfi2.dat' with lines title "Összeg"
+set terminal eps; set output 'output/CUfi_plot.eps'; plot 'output/CUfi.dat' with lines title "Részecskék potenciálja", 'output/CUfih.dat' with lines title "Külső potenciál", 'output/CUfi2.dat' with lines title "Összeg"
