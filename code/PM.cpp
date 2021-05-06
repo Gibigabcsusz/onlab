@@ -18,14 +18,14 @@ void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLa
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 1;
-    const int Ta = 1; // az ábrázolás időlépésének száma, min=2
+    const int T = 200;
+    const int Ta = 199; // az ábrázolás időlépésének száma, min=2
     const int Ng = 1000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 0;
     const float omDT = 0.2;
-    const float fihSzorzo = 100;
+    const float fihSzorzo = 10;
     const long int seedNum = 12;
 
 
@@ -138,17 +138,7 @@ int main(void)
         E[0][i]=fi[i-1]-fi[i+1];
     }
 
-
     auto check3 = high_resolution_clock::now();
-
-
-    // Átlagsebesség kiszámolása
-    for(i=0;i<Np;i++)
-        vatlag+=v[0][i];
-    vatlag/=Np;
-
-
-
 
     ///////////////////
     // a nagy ciklus //
@@ -176,6 +166,7 @@ int main(void)
             rho[i] *= rhoSzorzo;
         }
 
+    check6 = high_resolution_clock::now();
 
         // Potenciál kiszámolása
         fi[0]=0;
@@ -208,7 +199,7 @@ int main(void)
             filePrinter(Ng+1, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
         }
 
-    check6 = high_resolution_clock::now();
+    check7 = high_resolution_clock::now();
 
         // A térerősségek és egyben a gyorsulások ellentettjeinek kiszámolása
         E[t%2][0]=fi[Ng-1]-fi[1];
@@ -219,7 +210,7 @@ int main(void)
             E[t%2][i]=fi[i-1]-fi[i+1];
         }
 
-    check7 = high_resolution_clock::now();
+    check8 = high_resolution_clock::now();
 
         // A következő sebességek kiszámolása
         for(i=0;i<Np;i++) //TODO
@@ -238,16 +229,12 @@ int main(void)
             v[t%2][i]-=vatlag;
         }
 
-    check8 = high_resolution_clock::now();
+    check9 = high_resolution_clock::now();
 
         // A következő helyek kiszámolása
         for(i=0;i<Np;i++)
             x[(t+1)%2][i] = x[t%2][i] + (v[(t-1)%2][i] + v[t%2][i])/2;
-
-    check9 = high_resolution_clock::now();
-
         ciklikus(Ng, Np, x[(t+1)%2]);
-
 
     }
 
@@ -280,17 +267,17 @@ int main(void)
     if(vOverkill)
         cout << "Túl nagy sebesség..." << endl;
 
-    cout << "Sta-Sto: " << fullmicrosecs << " ms" << endl;
-    cout << "Sta-Ch1: " << microsecs1 << " ms" << endl;
-    cout << "Ch1-Ch2: " << microsecs2 << " ms" << endl;
-    cout << "Ch2-Ch3: " << microsecs3 << " ms" << endl;
-    cout << "Ch3-Ch4: " << microsecs4 << " ms" << endl;
-    cout << "Ch4-Ch5: " << microsecs5 << " ms" << endl;
-    cout << "Ch5-Ch6: " << microsecs6 << " ms" << endl;
-    cout << "Ch6-Ch7: " << microsecs7 << " ms" << endl;
-    cout << "Ch7-Ch8: " << microsecs8 << " ms" << endl;
-    cout << "Ch8-Ch9: " << microsecs9 << " ms" << endl;
-    cout << "Ch9-Sto: " << microsecs10 << " ms" << endl;
+    cout << "Sta-Sto: " << fullmicrosecs << " us" << endl;
+    cout << "Sta-Ch1: " << microsecs1 << " us" << endl;
+    cout << "Ch1-Ch2: " << microsecs2 << " us" << endl;
+    cout << "Ch2-Ch3: " << microsecs3 << " us" << endl;
+    cout << "Ch3-Ch4: " << microsecs4 << " us" << endl;
+    cout << "Ch4-Ch5: " << microsecs5 << " us" << endl;
+    cout << "Ch5-Ch6: " << microsecs6 << " us" << endl;
+    cout << "Ch6-Ch7: " << microsecs7 << " us" << endl;
+    cout << "Ch7-Ch8: " << microsecs8 << " us" << endl;
+    cout << "Ch8-Ch9: " << microsecs9 << " us" << endl;
+    cout << "Ch9-Sto: " << microsecs10 << " us" << endl;
 
 
     //felszabadítás
