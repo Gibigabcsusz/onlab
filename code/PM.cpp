@@ -190,7 +190,7 @@ int main(void)
         //TODO
         for(i=0; i<Ng; i++)
         {
-            fi[i]+=fih[i]*fihSzorzo;
+            fi[i]+=fih[i];
         }
         // Ábra generálása
         if(t==Ta)

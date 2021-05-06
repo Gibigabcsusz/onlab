@@ -126,7 +126,7 @@ auto check1 = high_resolution_clock::now();
     {
         fi[i]=rho[i-1]+2*fi[i-1]-fi[i-2];
     }
-    osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, fihSzorzo, 1, fih, fi, fi);
+    osszeg<<<blockSize, numBlocksGrid>>>(Ng, fih, fi);
     cudaDeviceSynchronize();
 
 auto check2 = high_resolution_clock::now();
@@ -192,7 +192,7 @@ auto check3 = high_resolution_clock::now();
             filePrinter(Ng, sorozat, rho, "output/CUrho.dat", "X", "Töltéssűrűség", "rho");
         }
         // külső potenciál hozzáadása
-        osszegAXBY<<<blockSize, numBlocksGrid>>>(Ng, fihSzorzo, 1, fih, fi, fi);
+        osszeg<<<blockSize, numBlocksGrid>>>(Ng, fih, fi);
         cudaDeviceSynchronize();
 
 
