@@ -27,7 +27,7 @@ int main(void)
     // Bemenetek megadása
     const int T = 1;
     const int Ta = 1; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 1000;
+    const int Ng = 10000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 1;
@@ -270,17 +270,17 @@ auto check3 = high_resolution_clock::now();
     int microsecs9 = duration9.count();
     auto duration10 = duration_cast<microseconds>(stopp - check9);
     int microsecs10 = duration10.count();
-    cout << "Sta-Sto: " << fullmicrosecs << " us" << endl;
-    cout << "Sta-Ch1: " << microsecs1 << " us" << endl;
-    cout << "Ch1-Ch2: " << microsecs2 << " us" << endl;
-    cout << "Ch2-Ch3: " << microsecs3 << " us" << endl;
-    cout << "Ch3-Ch4: " << microsecs4 << " us" << endl;
-    cout << "Ch4-Ch5: " << microsecs5 << " us" << endl;
-    cout << "Ch5-Ch6: " << microsecs6 << " us" << endl;
-    cout << "Ch6-Ch7: " << microsecs7 << " us" << endl;
-    cout << "Ch7-Ch8: " << microsecs8 << " us" << endl;
-    cout << "Ch8-Ch9: " << microsecs9 << " us" << endl;
-    cout << "Ch9-Sto: " << microsecs10 << " us" << endl;
+    cout << "Sta-Sto: " << fullmicrosecs << " ms" << endl;
+    cout << "Sta-Ch1: " << microsecs1 << " ms" << endl;
+    cout << "Ch1-Ch2: " << microsecs2 << " ms" << endl;
+    cout << "Ch2-Ch3: " << microsecs3 << " ms" << endl;
+    cout << "Ch3-Ch4: " << microsecs4 << " ms" << endl;
+    cout << "Ch4-Ch5: " << microsecs5 << " ms" << endl;
+    cout << "Ch5-Ch6: " << microsecs6 << " ms" << endl;
+    cout << "Ch6-Ch7: " << microsecs7 << " ms" << endl;
+    cout << "Ch7-Ch8: " << microsecs8 << " ms" << endl;
+    cout << "Ch8-Ch9: " << microsecs9 << " ms" << endl;
+    cout << "Ch9-Sto: " << microsecs10 << " ms" << endl;
 
     // felszabadítás
     free(sorozat);
