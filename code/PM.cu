@@ -27,7 +27,7 @@ int main(void)
     // Bemenetek megadása
     const int T = 1;
     const int Ta = 1; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 10000;
+    const int Ng = 1000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 1;
@@ -60,8 +60,8 @@ int main(void)
     cudaMallocManaged(&fiMasolat, Ng*sizeof(float));
     cudaMallocManaged(&fih, Ng*sizeof(float));
     cudaMallocManaged(&E, 2*sizeof(float*));
-    cudaMallocManaged(&(E[0]), Np*sizeof(float));
-    cudaMallocManaged(&(E[1]), Np*sizeof(float));
+    cudaMallocManaged(&(E[0]), Ng*sizeof(float));
+    cudaMallocManaged(&(E[1]), Ng*sizeof(float));
     cudaMallocManaged(&rRho, Nr*sizeof(float*));
     for(i=0; i<Nr; i++)
         cudaMallocManaged(&rRho[i], Ng*sizeof(float));

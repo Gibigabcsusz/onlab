@@ -20,7 +20,7 @@ int main(void)
     // Bemenetek megadása
     const int T = 1;
     const int Ta = 1; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 10000;
+    const int Ng = 1000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 0;
@@ -189,24 +189,24 @@ int main(void)
             fi[i]=rho[i-1]+2*fi[i-1]-fi[i-2];
         }
         // Ábra generálása
-        /*if(t==Ta)
+        if(t==Ta)
         {
             fi[Ng]=fi[0];
             filePrinter(Ng+1, sorozat, fih, "output/fih.dat", "X", "Potenciál", "Pot");
             filePrinter(Ng+1, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
             filePrinter(Ng+1, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
-        }*/
+        }
         //TODO
         for(i=0; i<Ng; i++)
         {
             fi[i]+=fih[i]*fihSzorzo;
         }
         // Ábra generálása
-        /*if(t==Ta)
+        if(t==Ta)
         {
             fi[Ng]=fi[0];
             filePrinter(Ng+1, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
-        }*/
+        }
 
     check6 = high_resolution_clock::now();
 
