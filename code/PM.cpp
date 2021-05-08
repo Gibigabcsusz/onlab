@@ -13,7 +13,7 @@ using namespace std::chrono;
 void add(int n, float *x, float *y, float *z); //TODO
 void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek); //TODO
 void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);
-void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
+void filePrinter(int vektorHossz, float* y, string fileNev);
 
 int main(void)
 {
@@ -184,10 +184,9 @@ int main(void)
         // Ábra generálása
         if(t==Ta)
         {
-            fi[Ng]=fi[0];
-            filePrinter(Ng, sorozat, fih, "output/fih.dat", "X", "Potenciál", "Pot");
-            filePrinter(Ng, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
-            filePrinter(Ng, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
+            filePrinter(Ng, fih, "output/fih.dat");
+            filePrinter(Ng, fi, "output/fi.dat");
+            filePrinter(Ng, rho, "output/rho.dat");
         }
         //TODO
         for(i=0; i<Ng; i++)
@@ -196,7 +195,7 @@ int main(void)
         }
         // Ábra generálása
         if(t==Ta)
-            filePrinter(Ng, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, fi, "output/fi2.dat");
 
     check7 = high_resolution_clock::now();
 
@@ -328,13 +327,12 @@ void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek)
 }
 
 
-void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel)
+void filePrinter(int vektorHossz, float* y, string fileNev)
 {
     ofstream myFile;
     myFile.open(fileNev);
-    myFile << "# " << xLabel << " " << yLabel << endl;
     for(int i=0; i<vektorHossz; i++)
-        myFile << x[i] << " " << y[i] << endl;
-    myFile << x[vektorHossz]+1 << " " << y[0] << endl;
+        myFile << i << " " << y[i] << endl;
+    myFile << vektorHossz << " " << y[0] << endl;
     myFile.close();
 }
