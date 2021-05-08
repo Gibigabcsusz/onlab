@@ -25,15 +25,15 @@ void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, floa
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 200;
-    const int Ta = 199; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 1000;
+    const int T = 300;
+    const int Ta = 299; // az ábrázolás időlépésének száma, min=2
+    const int Ng = 800;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 1;
     const float omDT = 0.2;
     const float fihSzorzo = 100;
-    const long int seedNum = 120;
+    const long int seedNum = 11;
 
 
     const int blockSize = 32;

@@ -18,15 +18,15 @@ void filePrinter(int vektorHossz, float* y, string fileNev);
 int main(void)
 {
     // Bemenetek megadása
-    const int T = 200;
-    const int Ta = 199; // az ábrázolás időlépésének száma
-    const int Ng = 1000;
+    const int T = 300;
+    const int Ta = 299; // az ábrázolás időlépésének száma
+    const int Ng = 800;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 0;
     const float omDT = 0.2;
     const float fihSzorzo = 100;
-    const long int seedNum = 120;
+    const long int seedNum = 11;
 
 
     // Tároló vektorok inicializálása
