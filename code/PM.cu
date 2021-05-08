@@ -32,8 +32,10 @@ int main(void)
     const int Np = Nc*Ng;
     const float maxvin = 1;
     const float omDT = 0.2;
-    const float fihSzorzo = 10;
-    const long int seedNum = 12;
+    const float fihSzorzo = 100;
+    const long int seedNum = 120;
+
+
     const int blockSize = 32;
     const int numBlocksGrid = (Ng + blockSize - 1) / blockSize;
     const int numBlocksParticles = (Np + blockSize - 1) / blockSize;
@@ -50,6 +52,7 @@ int main(void)
     // Tároló vektorok inicializálása a device-on
     float **x, **v, *rho, *fi, *fih, **E, *fiMasolat, **rRho;
     int *p;
+    bool overkill = false;
 
     cudaMallocManaged(&x, 2*sizeof(float*));
     cudaMallocManaged(&v, 2*sizeof(float*));
@@ -221,7 +224,7 @@ auto check3 = high_resolution_clock::now();
         {
             vatlag += v[t%2][i];
             if(abs(v[t%2][i]) > Ng)
-                cout << "Túl nagy sebesség!" << endl;
+                overkill = true;
         }
         vatlag/=Np;
             // az átlagsebességgel korrigálás TODO
@@ -263,6 +266,11 @@ auto check3 = high_resolution_clock::now();
     int microsecs9 = duration9.count();
     auto duration10 = duration_cast<microseconds>(stopp - check9);
     int microsecs10 = duration10.count();
+
+    if(overkill)
+        cout << "Túl nagy sebesség!" << endl;
+
+
     cout << "Sta-Sto: " << fullmicrosecs << " us" << endl;
     cout << "Sta-Ch1: " << microsecs1 << " us" << endl;
     cout << "Ch1-Ch2: " << microsecs2 << " us" << endl;

@@ -19,14 +19,14 @@ int main(void)
 {
     // Bemenetek megadása
     const int T = 200;
-    const int Ta = 199; // az ábrázolás időlépésének száma, min=2
+    const int Ta = 199; // az ábrázolás időlépésének száma
     const int Ng = 1000;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 0;
     const float omDT = 0.2;
-    const float fihSzorzo = 10;
-    const long int seedNum = 12;
+    const float fihSzorzo = 100;
+    const long int seedNum = 120;
 
 
     // Tároló vektorok inicializálása
@@ -40,11 +40,11 @@ int main(void)
     vb = (float*)malloc(Np*sizeof(float));
     v = (float**)malloc(2*sizeof(float*));
     p = (int*)malloc(Np*sizeof(int));
-    rho = (float*)malloc((Ng+1)*sizeof(float));
-    fi = (float*)malloc((Ng+1)*sizeof(float));
-    fih = (float*)malloc((Ng+1)*sizeof(float));
-    Ea = (float*)malloc((Ng+1)*sizeof(float));
-    Eb = (float*)malloc((Ng+1)*sizeof(float));
+    rho = (float*)malloc(Ng*sizeof(float));
+    fi = (float*)malloc(Ng*sizeof(float));
+    fih = (float*)malloc(Ng*sizeof(float));
+    Ea = (float*)malloc(Ng*sizeof(float));
+    Eb = (float*)malloc(Ng*sizeof(float));
     E = (float**)malloc(2*sizeof(float*));
 
     x[0]=xa;
@@ -60,13 +60,13 @@ int main(void)
     float rhoSzorzo = omDT*omDT/2/Nc;
     // TODO
     float y=0;
-    for(i=0; i<Ng+1; i++)
+    for(i=0; i<Ng; i++)
     {
         fih[i] = fihSzorzo*(-256*y*y*y*y + 512*y*y*y - 352*y*y + 96*y - 9);
         y = y + 1.0/Ng;
     }
-    float sorozat[Ng+1] = {};
-    for(i=0; i<Ng+1; i++)
+    float sorozat[Ng] = {};
+    for(i=0; i<Ng; i++)
         sorozat[i]=i;
 
     // Kiinduló állapotok legenerálása
@@ -81,6 +81,8 @@ int main(void)
         x[1][i] = x[0][i]+v[0][i];
     }
     ciklikus(Np, Ng, x[1]);
+
+
 
     // időmérés indítása
     auto check4 = high_resolution_clock::now();
@@ -183,9 +185,9 @@ int main(void)
         if(t==Ta)
         {
             fi[Ng]=fi[0];
-            filePrinter(Ng+1, sorozat, fih, "output/fih.dat", "X", "Potenciál", "Pot");
-            filePrinter(Ng+1, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
-            filePrinter(Ng+1, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
+            filePrinter(Ng, sorozat, fih, "output/fih.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, sorozat, fi, "output/fi.dat", "X", "Potenciál", "Pot");
+            filePrinter(Ng, sorozat, rho, "output/rho.dat", "X", "Töltéssűrűség", "rho");
         }
         //TODO
         for(i=0; i<Ng; i++)
@@ -194,10 +196,7 @@ int main(void)
         }
         // Ábra generálása
         if(t==Ta)
-        {
-            fi[Ng]=fi[0];
-            filePrinter(Ng+1, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
-        }
+            filePrinter(Ng, sorozat, fi, "output/fi2.dat", "X", "Potenciál", "Pot");
 
     check7 = high_resolution_clock::now();
 
@@ -336,5 +335,6 @@ void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLa
     myFile << "# " << xLabel << " " << yLabel << endl;
     for(int i=0; i<vektorHossz; i++)
         myFile << x[i] << " " << y[i] << endl;
+    myFile << x[vektorHossz]+1 << " " << y[0] << endl;
     myFile.close();
 }
