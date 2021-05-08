@@ -20,12 +20,12 @@ int main(void)
     // Bemenetek megadása
     const int T = 300;
     const int Ta = 299; // az ábrázolás időlépésének száma
-    const int Ng = 800;
+    const int Ng = 10;
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 0;
     const float omDT = 0.2;
-    const float fihSzorzo = 100;
+    const float fihSzorzo = 0.01;
     const long int seedNum = 11;
 
 
