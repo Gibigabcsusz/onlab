@@ -1,2 +1,2 @@
 set terminal eps; set output 'output/rho_plot.eps'; plot 'output/rho.dat' with lines
-set terminal eps; set output 'output/fi_plot.eps'; plot 'output/fi.dat' with lines title "Részecskék potenciálja", 'output/fih.dat' with lines title "Külső potenciál", 'output/fi2.dat' with lines title "Összeg"
+set terminal eps; set output 'output/fi_plot.eps'; set yrange [-1000 : 200]; plot 'output/fi.dat' with lines title "Részecskék potenciálja", 'output/fih.dat' with lines title "Külső potenciál", 'output/fi2.dat' with lines title "Összeg"
