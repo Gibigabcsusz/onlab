@@ -21,21 +21,33 @@ __global__ void toltessuruseg(int cellaSzam, int reszecskeSzam, int reszToltesSz
 void fihGenerator(int len, float szorzo, float* outVector);
 void filePrinter(int vektorHossz, float* x, float* y, string fileNev, string xLabel, string yLabel, string dataLabel);
 void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, float** xp, float** vp);
+int extractInt(string str);
 
-int main(void)
+
+
+int main(int argCount, char** argVector)
 {
     // Bemenetek megadása
-    const int T = 300;
-    const int Ta = 299; // az ábrázolás időlépésének száma, min=2
-    const int Ng = 20;
+    int T;
+    if(argCount > 1)
+    {
+        string str = argVector[2];
+        T = extractInt(argVector[2]);
+    }
+    //const int T = 300;
+    const int Ta = 2; // az ábrázolás időlépésének száma
+    int Ng;
+    if(argCount > 1)
+    {
+        string str = argVector[1];
+        Ng = extractInt(argVector[1]);
+    }
     const int Nc = 15;
     const int Np = Nc*Ng;
-    const float maxvin = 1;
+    const float maxvin = Ng/100.0;
     const float omDT = 0.2;
-    const float fihSzorzo = 0.02;
+    float fihSzorzo = 0;
     const long int seedNum = 11;
-
-
     const int blockSize = 32;
     const int numBlocksGrid = (Ng + blockSize - 1) / blockSize;
     const int numBlocksParticles = (Np + blockSize - 1) / blockSize;
@@ -271,7 +283,7 @@ auto check3 = high_resolution_clock::now();
         cout << "Túl nagy sebesség!" << endl;
 
 
-    cout << "Sta-Sto: " << fullmicrosecs << " us" << endl;
+/*    cout << "Sta-Sto: " << fullmicrosecs << " us" << endl;
     cout << "Sta-Ch1: " << microsecs1 << " us" << endl;
     cout << "Ch1-Ch2: " << microsecs2 << " us" << endl;
     cout << "Ch2-Ch3: " << microsecs3 << " us" << endl;
@@ -282,6 +294,9 @@ auto check3 = high_resolution_clock::now();
     cout << "Ch7-Ch8: " << microsecs8 << " us" << endl;
     cout << "Ch8-Ch9: " << microsecs9 << " us" << endl;
     cout << "Ch9-Sto: " << microsecs10 << " us" << endl;
+*/
+
+cout << Ng << (float)fullmicrosecs/1000000 << endl;
 
     // felszabadítás
     free(sorozat);
@@ -426,5 +441,19 @@ void kezdetiXV(long int seed, float maxv, int reszecskeSzam, int cellaSzam, floa
         xp[0][i] = unifx(re);
         vp[0][i] = unifv(re);
         xp[1][i] = xp[0][i]+vp[0][i];
+    }
+}
+
+int extractInt(string str)
+{
+    stringstream ss;
+    ss << str;
+    string temp;
+    int found;
+    while (!ss.eof()) {
+        ss >> temp;
+        if (stringstream(temp) >> found)
+            return found;
+        temp = "";
     }
 }

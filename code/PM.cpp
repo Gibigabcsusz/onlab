@@ -17,6 +17,7 @@ void filePrinter(int vektorHossz, float* y, string fileNev);
 int extractInt(string str);
 
 
+
 int main(int argCount, char** argVector)
 {
     // Bemenetek megadása

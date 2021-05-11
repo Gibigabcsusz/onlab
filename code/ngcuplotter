@@ -1,0 +1,12 @@
+reset;
+set terminal eps size 4,4;
+set logscale xy;
+#set xrange [1 : 10000];
+#set yrange [0.001 : 10];
+set grid;
+set format x "10^{%T}";
+set format y "10^{%T} s";
+set output 'output/meres_ngcu.eps';
+set size square;
+plot 'output/meres_ng.dat' with lines title 'C++'
+plot 'output/meres_ngcu.dat' with lines title 'CUDA'
