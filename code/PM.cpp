@@ -5,7 +5,7 @@
 #include <fstream>
 #include <chrono>
 #include <typeinfo>
-
+#include <sstream>
 
 using namespace std;
 using namespace std::chrono;
@@ -14,19 +14,27 @@ void add(int n, float *x, float *y, float *z); //TODO
 void ciklikus(float cellaSzam, int reszecskeSzam, float* helyek); //TODO
 void besorol(int reszecskeSzam, int cellaSzam, float* helyek, int* indexek);
 void filePrinter(int vektorHossz, float* y, string fileNev);
+int extractInt(string str);
 
-int main(void)
+
+int main(int argCount, char** argVector)
 {
     // Bemenetek megadása
     const int T = 300;
     const int Ta = 299; // az ábrázolás időlépésének száma
-    const int Ng = 10;
+    int Ng;
+    if(argCount > 1)
+    {
+        string str = argVector[1];
+        Ng = extractInt(argVector[1]);
+    }
     const int Nc = 15;
     const int Np = Nc*Ng;
     const float maxvin = 0;
     const float omDT = 0.2;
-    const float fihSzorzo = 0.01;
+    const float fihSzorzo = (double)Ng/1000;
     const long int seedNum = 11;
+
 
 
     // Tároló vektorok inicializálása
@@ -335,4 +343,19 @@ void filePrinter(int vektorHossz, float* y, string fileNev)
         myFile << i << " " << y[i] << endl;
     myFile << vektorHossz << " " << y[0] << endl;
     myFile.close();
+}
+
+
+int extractInt(string str)
+{
+    stringstream ss;
+    ss << str;
+    string temp;
+    int found;
+    while (!ss.eof()) {
+        ss >> temp;
+        if (stringstream(temp) >> found)
+            return found;
+        temp = "";
+    }
 }
