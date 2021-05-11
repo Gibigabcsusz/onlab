@@ -1,0 +1,1 @@
+set terminal eps; set output 'output/meres_ng.eps'; plot 'output/meres_ng.dat' with lines
