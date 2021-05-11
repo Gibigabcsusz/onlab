@@ -296,7 +296,7 @@ auto check3 = high_resolution_clock::now();
     cout << "Ch9-Sto: " << microsecs10 << " us" << endl;
 */
 
-cout << Ng << (float)fullmicrosecs/1000000 << endl;
+cout << Ng << " " << (float)fullmicrosecs/1000000.0f << endl;
 
     // felszabadítás
     free(sorozat);
