@@ -8,5 +8,4 @@ set format x "10^{%T}";
 set format y "10^{%T} s";
 set output 'output/meres_ngcu.eps';
 set size square;
-plot 'output/meres_ng.dat' with lines title 'C++'
-plot 'output/meres_ngcu.dat' with lines title 'CUDA'
+plot 'output/meres_ng.dat' with lines title 'C++', 'output/meres_ngcu.dat' with lines title 'CUDA'
