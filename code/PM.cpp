@@ -20,8 +20,14 @@ int extractInt(string str);
 int main(int argCount, char** argVector)
 {
     // Bemenetek megadása
-    const int T = 300;
-    const int Ta = 299; // az ábrázolás időlépésének száma
+    int T;
+    if(argCount > 1)
+    {
+        string str = argVector[2];
+        T = extractInt(argVector[2]);
+    }
+    //const int T = 300;
+    const int Ta = 2; // az ábrázolás időlépésének száma
     int Ng;
     if(argCount > 1)
     {
@@ -30,9 +36,9 @@ int main(int argCount, char** argVector)
     }
     const int Nc = 15;
     const int Np = Nc*Ng;
-    const float maxvin = 0;
+    const float maxvin = Ng/100.0;
     const float omDT = 0.2;
-    const float fihSzorzo = (double)Ng/1000;
+    float fihSzorzo = 0;
     const long int seedNum = 11;
 
 
@@ -273,7 +279,7 @@ int main(int argCount, char** argVector)
     if(vOverkill)
         cout << "Túl nagy sebesség..." << endl;
 
-    cout << "Sta-Sto: " << fullmicrosecs << " us" << endl;
+/*    cout << "Sta-Sto: " << fullmicrosecs << " us" << endl;
     cout << "Sta-Ch1: " << microsecs1 << " us" << endl;
     cout << "Ch1-Ch2: " << microsecs2 << " us" << endl;
     cout << "Ch2-Ch3: " << microsecs3 << " us" << endl;
@@ -284,7 +290,9 @@ int main(int argCount, char** argVector)
     cout << "Ch7-Ch8: " << microsecs8 << " us" << endl;
     cout << "Ch8-Ch9: " << microsecs9 << " us" << endl;
     cout << "Ch9-Sto: " << microsecs10 << " us" << endl;
+*/
 
+cout << Ng << " " << fullmicrosecs << endl;
 
     //felszabadítás
 
