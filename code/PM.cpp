@@ -292,7 +292,7 @@ int main(int argCount, char** argVector)
     cout << "Ch9-Sto: " << microsecs10 << " us" << endl;
 */
 
-cout << Ng << " " << fullmicrosecs << endl;
+cout << Ng << " " << (float)fullmicrosecs/1000000 << endl;
 
     //felszabadítás
 
